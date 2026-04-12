@@ -49,3 +49,5 @@ App::new()
     .add_plugins(state::GameStatePlugin) // ← これを追加
     .run();
 ```
+
+これでGameStateが使えるようになりました。
