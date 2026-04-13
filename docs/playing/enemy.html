@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0ac16424.js";
+            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5c1821a6.js"></script>
+        <script src="../toc-1b60c374.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -175,16 +175,196 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="敵"><a class="header" href="#敵">敵</a></h1>
+<p><code>Enemy</code>コンポーネントと定数を作ります。<code>playing/enemy.rs</code></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Component)]
+pub struct Enemy;
+
+const SHOOT_RATE: i32 = 3;
+const SHOOT_CHANCE_MAX: i32 = 10;
+const SHOOT_INTERVAL: f32 = 0.3;
+const ENEMY_MAX_HP: f32 = 100.0;
+
+const ENEMY_SPAWN_X_RANGE: std::ops::RangeInclusive&lt;i32&gt; = -9..=9;
+const ENEMY_SPAWN_Y: f32 = 0.0;
+const ENEMY_SPAWN_Z: f32 = 10.0;
+
+const ENEMY_SPEED_LIMIT: f32 = 2.0;
+<span class="boring">}</span></code></pre>
+<p>敵をスポーンする関数を作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn spawn_enemy(
+    commands: &amp;mut Commands,
+    meshes: &amp;mut Assets&lt;Mesh&gt;,
+    materials: &amp;mut Assets&lt;StandardMaterial&gt;,
+    translation: Vec3,
+) {
+    let mut rng = rand::rng();
+    commands.spawn((
+        DespawnOnExit(crate::state::GameState::Playing),
+        Character::Enemy,
+        Enemy,
+        super::utils::Interval {
+            time: 0.0,
+            interval: SHOOT_INTERVAL,
+        },
+        HP(ENEMY_MAX_HP),
+        Transform::from_translation(translation).looking_to(-Vec3::Z, Vec3::Y),
+        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::BLACK,
+            emissive: Color::srgb(1.0, 0.1, 0.1).to_linear(),
+            ..default()
+        })),
+        Control {
+            speed_limit: ENEMY_SPEED_LIMIT,
+            mass: 1.0,
+            velocity: Vec3 {
+                x: rng.random_range(-1.0..1.0),
+                y: 0.0,
+                z: rng.random_range(-1.0..0.0),
+            },
+            ..default()
+        },
+    ));
+}
+<span class="boring">}</span></code></pre>
+<p>また、ランダムな位置にスポーンする関数と初期配置をするシステムを作ります。ランダムな位置へのスポーンは敵が倒されたり範囲外に出てリスポーンするときに使います。乱数を使いたいので<code>rand</code>というライブラリクレートを使います。</p>
+<pre><code class="language-toml">rand = "0.10.1"
+</code></pre>
+<p>をCargo.tomlに追加</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rand::prelude::*;
+pub fn spawn_random_enemy(
+    commands: &amp;mut Commands,
+    meshes: &amp;mut Assets&lt;Mesh&gt;,
+    materials: &amp;mut Assets&lt;StandardMaterial&gt;,
+) {
+    let mut rng = rand::rng();
+    let x = rng.random_range(ENEMY_SPAWN_X_RANGE);
+    spawn_enemy(
+        commands,
+        meshes,
+        materials,
+        Vec3 {
+            x: x as f32,
+            y: ENEMY_SPAWN_Y,
+            z: ENEMY_SPAWN_Z,
+        },
+    );
+}
+
+fn setup_enemies(
+    mut commands: Commands,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+) {
+    for i in -3..=3 {
+        spawn_enemy(
+            &amp;mut commands,
+            &amp;mut meshes,
+            &amp;mut materials,
+            Vec3 {
+                x: (i * 3) as f32,
+                y: ENEMY_SPAWN_Y,
+                z: ENEMY_SPAWN_Z,
+            },
+        );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>範囲外に出た敵をデスポーンして新たな敵をスポーンします。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>const ENEMY_X_LIMIT: f32 = 19.0;
+const ENEMY_NEG_X_LIMIT: f32 = -19.0;
+const ENEMY_Z_LIMIT: f32 = 15.0;
+const ENEMY_NEG_Z_LIMIT: f32 = -6.0;
+
+fn delete_out_of_range_enemy(
+    query: Query&lt;(&amp;Transform, Entity), With&lt;Enemy&gt;&gt;,
+    mut commands: Commands,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+) {
+    for (translation, entity) in query
+        .iter()
+        .map(|(transform, entity)| (transform.translation, entity))
+    {
+        let x = translation.x;
+        let z = translation.z;
+        if !(ENEMY_NEG_X_LIMIT..=ENEMY_X_LIMIT).contains(&amp;x)
+            || !(ENEMY_NEG_Z_LIMIT..=ENEMY_Z_LIMIT).contains(&amp;z)
+        {
+            commands.entity(entity).despawn();
+            spawn_random_enemy(&amp;mut commands, &amp;mut meshes, &amp;mut materials);
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>また、敵にも弾丸を発射するシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn enemy_shoot(
+    mut commands: Commands,
+    query: Query&lt;(&amp;Transform, &amp;Character, &amp;mut super::utils::Interval), With&lt;Enemy&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+) {
+    for (transform, &amp;owner, mut interval) in query {
+        let mut rng = rand::rng();
+        let random_val = rng.random_range(0..SHOOT_CHANCE_MAX);
+        let is_ready = interval.is_ready();
+        if is_ready {
+            interval.reset();
+        }
+        if is_ready &amp;&amp; random_val &lt;= SHOOT_RATE {
+            super::bullet::spawn_bullet(
+                &amp;mut commands,
+                owner,
+                transform.translation,
+                transform.forward(),
+                &amp;mut meshes,
+                &amp;mut materials,
+            );
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これらのシステムをこれまで同様にプラグインに追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use super::utils::*;
+use bevy::prelude::*;
+use rand::prelude::*;
+pub struct EnemyPlugin;
+
+impl Plugin for EnemyPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(OnEnter(crate::state::GameState::Playing), setup_enemies)
+            .add_systems(
+                Update,
+                (enemy_shoot, delete_out_of_range_enemy).run_if(
+                    in_state(crate::state::GameState::Playing)
+                        .and(in_state(super::InGameState::Running)),
+                ),
+            );
+    }
+}
+<span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../playing/player.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../playing/bullet.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../playing/bullet.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../playing/hp.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -194,11 +374,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../playing/player.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../playing/bullet.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../playing/bullet.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../playing/hp.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

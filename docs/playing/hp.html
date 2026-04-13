@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0ac16424.js";
+            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5c1821a6.js"></script>
+        <script src="../toc-1b60c374.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -175,16 +175,98 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="hp"><a class="header" href="#hp">HP</a></h1>
+<p>HpUIの更新とHPが0になったときのシステムを書きます。</p>
+<p>HpUIの更新とプレイヤーのHPが0になったときの処理をするシステムを作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use crate::playing::CurrentScore;
+
+use super::utils::*;
+use bevy::prelude::*;
+
+#[derive(Component)]
+pub struct HpUI;
+
+pub fn update_player_hp(
+    mut commands: Commands,
+    mut ui_query: Query&lt;&amp;mut Text, With&lt;HpUI&gt;&gt;,
+    player: Query&lt;(Entity, &amp;HP), With&lt;super::player::Player&gt;&gt;,
+    mut game_state: ResMut&lt;NextState&lt;crate::state::GameState&gt;&gt;,
+) {
+    let mut ui = match ui_query.single_mut() {
+        Ok(ui) =&gt; ui,
+        Err(_) =&gt; {
+            warn!("Expected exactly one HP UI entity, but found none or multiple.");
+            return;
+        }
+    };
+    let (player_entity, hp) = match player.single() {
+        Ok(p) =&gt; p,
+        Err(_) =&gt; {
+            warn!("Expected exactly one Player entity, but found none or multiple.");
+            return;
+        }
+    };
+    **ui = format!("HP: {}", hp.0);
+    if hp.0 &lt;= 0.0 {
+        commands.entity(player_entity).despawn();
+        game_state.set(crate::state::GameState::Result);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>敵のHPが0になったときに敵をデスポーンしKillをカウントアップするシステムを作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn handle_enemy_death(
+    mut commands: Commands,
+    query: Query&lt;(Entity, &amp;HP, &amp;Character)&gt;,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+    mut current_score: ResMut&lt;CurrentScore&gt;,
+) {
+    for (entity, hp, &amp;character) in query {
+        if character == Character::Player {
+            continue;
+        }
+        if hp.0 &lt;= 0.0 {
+            commands.entity(entity).despawn();
+            if character == Character::Enemy {
+                current_score.0.kill += 1;
+                super::enemy::spawn_random_enemy(&amp;mut commands, &amp;mut meshes, &amp;mut materials);
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これらのシステムを<code>HpPlugin</code>に追加する。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use crate::state;
+
+pub struct HpPlugin;
+
+impl Plugin for HpPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(
+            Update,
+            (update_player_hp, handle_enemy_death).chain().run_if(
+                in_state(state::GameState::Playing).and(in_state(super::InGameState::Running)),
+            ),
+        );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>また、このプラグインも<code>playing/mod.rs</code>の方に追加するのを忘れないように。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../playing/bullet.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../playing/enemy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../all_in_one.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../result.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -194,11 +276,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../playing/bullet.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../playing/enemy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../all_in_one.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../result.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

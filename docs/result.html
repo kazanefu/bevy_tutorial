@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Playing画面の作成 - Bevy Game Dev Tutorial: Create a Simple Space Invaders-Style Game</title>
+        <title>Result画面の作成 - Bevy Game Dev Tutorial: Create a Simple Space Invaders-Style Game</title>
 
 
         <!-- Custom HTML head -->
@@ -174,32 +174,182 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="playing画面の作成"><a class="header" href="#playing画面の作成">Playing画面の作成</a></h1>
-<p>Playing画面は、ゲームがプレイされている画面です。長くなるので、Playing画面全体の流れ、プレイヤー、敵、球、HP、これらで共通して扱うもの、と分けて説明しますが、横断することもあるのでとりあえず以下のファイルを作ってください。</p>
-<pre><code>src/playing/mod.rs
-src/playing/player.rs
-src/playing/enemy.rs
-src/playing/bullet.rs
-src/playing/hp.rs
-src/playing/utils.rs
-</code></pre>
-<p>また、<code>main.rs</code>に<code>mod playing;</code>を追加します。</p>
+                        <h1 id="result画面の作成"><a class="header" href="#result画面の作成">Result画面の作成</a></h1>
+<p>リザルト画面では、今回のリザルト、今回のを含めたスコアの履歴を順位の順で表示、リトライボタン(Home画面に戻る)で構成されます。まずは<code>result/mod.rs</code>を作ってください</p>
+<p>リザルト画面の初期化をするシステムを作ります。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>mod state;
-mod home;
-mod playing;
+</span>use crate::playing::{Score, ScoreList};
+use crate::state;
+use bevy::prelude::*;
+
+#[derive(Component)]
+struct RetryButton;
+
+#[derive(Component)]
+struct ResultText;
+
+fn setup_result_ui(commands: &amp;mut Commands, asset_server: &amp;AssetServer, score_list: &amp;ScoreList) {
+    let mut score_score_list = String::from("Ranking\n");
+    let mut sorted_score_list = score_list.0.clone();
+    sorted_score_list.sort_by(|a, b| a.score().partial_cmp(&amp;b.score()).expect("NaN in Score"));
+    sorted_score_list
+        .iter()
+        .rev()
+        .map(|score| score.score())
+        .enumerate()
+        .for_each(|(rank, score)| {
+            score_score_list.push_str(&amp;format!("No. {}: {:.2}\n", rank + 1, score))
+        });
+    commands.spawn((
+        DespawnOnExit(state::GameState::Result),
+        Node {
+            width: percent(100),
+            height: percent(100),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(10.0),
+            ..default()
+        },
+        children![
+            (
+                Text::new(score_list.0.last().unwrap_or(&amp;Score::default()).to_string()),
+                ResultText,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+            (
+                Button,
+                RetryButton,
+                Node {
+                    width: percent(20),
+                    height: percent(10),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border_radius: BorderRadius::MAX,
+                    ..default()
+                },
+                BorderColor::all(Color::WHITE),
+                BackgroundColor(Color::WHITE),
+                children![(
+                    Text::new("Retry"),
+                    TextFont {
+                        font: asset_server.load(
+                            "embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"
+                        ),
+                        font_size: 40.0,
+                        ..default()
+                    },
+                    TextLayout::new_with_justify(Justify::Center),
+                    TextColor::BLACK,
+                )]
+            ),
+            (
+                Text::new(score_score_list),
+                ResultText,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+        ],
+    ));
+}
+
+fn setup_result_screen(
+    mut commands: Commands,
+    asset_server: Res&lt;AssetServer&gt;,
+    score_list: Res&lt;ScoreList&gt;,
+) {
+    // spawn a camera
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z),
+        DespawnOnExit(state::GameState::Result),
+    ));
+    setup_result_ui(&amp;mut commands, &amp;asset_server, &amp;score_list);
+}
 <span class="boring">}</span></code></pre>
+<p>リトライボタンの動作のシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>type RetryButtonInputs = (Changed&lt;Interaction&gt;, With&lt;RetryButton&gt;);
+fn update_retry_button(
+    mut query: Query&lt;(&amp;Interaction, &amp;mut BackgroundColor), RetryButtonInputs&gt;,
+    mut game_state: ResMut&lt;NextState&lt;state::GameState&gt;&gt;,
+) {
+    for (interaction, mut background_color) in query.iter_mut() {
+        match interaction {
+            Interaction::Pressed =&gt; {
+                background_color.0 = Color::srgb(0.5, 0.5, 0.5);
+                game_state.set(state::GameState::Home);
+            }
+            Interaction::Hovered =&gt; {
+                background_color.0 = Color::srgb(0.7, 0.7, 0.7);
+            }
+            Interaction::None =&gt; {
+                background_color.0 = Color::srgb(0.9, 0.9, 0.9);
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これらのシステムをプラグインを作ってそこに入れます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ResultPlugin;
+
+impl Plugin for ResultPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(OnEnter(state::GameState::Result), setup_result_screen)
+            .add_systems(
+                Update,
+                update_retry_button.run_if(in_state(state::GameState::Result)),
+            );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>このプラグインは<code>main.rs</code>にあるappに追加してください。最終的な<code>main.rs</code>は次のようになります。</p>
+<pre class="playground"><code class="language-rust">#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use bevy::prelude::*;
+mod home;
+mod state;
+mod playing;
+mod result;
+
+fn main() {
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins);
+    bevy::asset::embedded_asset!(app, "fonts/NotoSansJP-Bold.ttf");
+    bevy::asset::embedded_asset!(app, "img/invader_background.png");
+    app.add_plugins(state::GameStatePlugin)
+        .add_plugins(home::HomePlugin)
+        .add_plugins(playing::PlayingPlugin)
+        .add_plugins(result::ResultPlugin)
+        .run();
+}</code></pre>
+<p>これで完成です。お疲れ様でした。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="home.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="playing/hp.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="playing/mod.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="all_in_one.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -209,11 +359,11 @@ mod playing;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="home.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="playing/hp.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="playing/mod.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="all_in_one.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

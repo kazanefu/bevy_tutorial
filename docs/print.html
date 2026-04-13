@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0ac16424.js";
+            window.path_to_searchindex_js = "searchindex-5659a02e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5c1821a6.js"></script>
+        <script src="toc-1b60c374.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -954,7 +954,7 @@ use super::utils::*;
 #[derive(Component)]
 pub struct Player;
 
-pub fn spawn_player(
+fn spawn_player(
     mut commands: Commands,
     mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
     mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
@@ -1027,11 +1027,650 @@ impl Plugin for PlayerPlugin {
 <p><code>playing/mod.rs</code>の方にこのプラグインを追加するのを忘れないでください。</p>
 <p>これでプレイヤーを動かせるようになりました。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="敵"><a class="header" href="#敵">敵</a></h1>
+<h1 id="弾丸"><a class="header" href="#弾丸">弾丸</a></h1>
+<p><code>playing/bullet.rs</code>で<code>Bullet</code>コンポーネントと定数たちを定義していきます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use bevy::prelude::*;
+
+use super::utils::*;
+use crate::state;
+
+#[derive(Component)]
+pub struct Bullet {
+    owner: Character,
+    velocity: Vec3,
+    damage: f32,
+}
+
+const BULLET_SPEED: f32 = 30.0;
+const PLAYER_BULLET_DAMAGE: f32 = 30.0;
+const ENEMY_BULLET_DAMAGE: f32 = 3.0;
+const BULLET_COLLISION_RADIUS: f32 = 1.0;
+const BULLET_LIFE_TIME: f32 = 0.7;
+<span class="boring">}</span></code></pre>
+<p>弾丸の移動をするシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn move_bullet(query: Query&lt;(&amp;mut Transform, &amp;Bullet)&gt;, time: Res&lt;Time&gt;) {
+    for (mut transform, bullet) in query {
+        transform.translation += bullet.velocity * time.delta_secs();
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>弾丸は一定時間後に消えてほしいので一定時間をはかるコンポーネントを<code>playing/utils.rs</code>に追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Component)]
+pub struct Interval {
+    pub time: f32,
+    pub interval: f32,
+}
+
+impl Interval {
+    pub fn tick(&amp;mut self, delta_time: f32) {
+        self.time += delta_time;
+    }
+    pub fn reset(&amp;mut self) {
+        self.time = 0.0;
+    }
+    pub fn is_ready(&amp;self) -&gt; bool {
+        self.time &gt;= self.interval
+    }
+}
+
+fn tick_interval(time: Res&lt;Time&gt;, query: Query&lt;&amp;mut Interval&gt;) {
+    for mut interval in query {
+        interval.tick(time.delta_secs());
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>tick_interval</code>システムをUtilPluginのbuild内でappに追加しておきます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct UtilPlugin;
+
+impl Plugin for UtilPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(
+            Update,
+            (tick_interval, update_velocity).run_if(
+                in_state(crate::state::GameState::Playing)
+                    .and(in_state(super::InGameState::Running)),
+            ),
+        );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>弾丸をスポーンする関数を作ります(<code>playing/bullet.rs</code>)。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn spawn_bullet(
+    commands: &amp;mut Commands,
+    owner: Character,
+    translation: Vec3,
+    forward: Dir3,
+    meshes: &amp;mut Assets&lt;Mesh&gt;,
+    materials: &amp;mut Assets&lt;StandardMaterial&gt;,
+) {
+    let (color, damage) = match owner {
+        Character::Player =&gt; (Color::srgb(0.0, 1.0, 1.0), PLAYER_BULLET_DAMAGE),
+        Character::Enemy =&gt; (Color::srgb(1.0, 0.0, 1.0), ENEMY_BULLET_DAMAGE),
+    };
+    commands.spawn((
+        Bullet {
+            owner,
+            velocity: forward.normalize() * BULLET_SPEED,
+            damage,
+        },
+        super::utils::Interval {
+            time: 0.0,
+            interval: BULLET_LIFE_TIME,
+        },
+        DespawnOnExit(state::GameState::Playing),
+        Transform::from_translation(translation).looking_to(forward, Vec3::Y),
+        Mesh3d(meshes.add(Cuboid::new(0.2, 0.2, 1.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::BLACK,
+            emissive: color.to_linear(),
+            ..default()
+        })),
+    ));
+}
+<span class="boring">}</span></code></pre>
+<p>弾丸の衝突判定をするシステムを作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn bullet_collision(
+    mut commands: Commands,
+    bullet_query: Query&lt;(Entity, &amp;Transform, &amp;Bullet)&gt;,
+    mut character_query: Query&lt;(&amp;Transform, &amp;Character, &amp;mut HP)&gt;,
+) {
+    for (bullet_entity, bullet_transform, bullet) in bullet_query {
+        for (character_transform, character, mut hp) in character_query.iter_mut() {
+            if *character == bullet.owner {
+                continue;
+            }
+            let distance_sq = bullet_transform
+                .translation
+                .distance_squared(character_transform.translation);
+            if distance_sq &lt;= BULLET_COLLISION_RADIUS * BULLET_COLLISION_RADIUS {
+                hp.0 -= bullet.damage;
+                commands.entity(bullet_entity).despawn();
+                break ;
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>タイムアウトした弾丸を消去するシステムを作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn remove_time_out_bullet(
+    mut commands: Commands,
+    bullet_query: Query&lt;(Entity, &amp;super::utils::Interval), With&lt;Bullet&gt;&gt;,
+) {
+    for (entity, interval) in bullet_query {
+        if interval.is_ready() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>BulletPlugin</code>を作ってそこにシステムを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct BulletPlugin;
+
+impl Plugin for BulletPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(
+            Update,
+            (bullet_collision, move_bullet, remove_time_out_bullet).run_if(
+                in_state(crate::state::GameState::Playing)
+                    .and(in_state(super::InGameState::Running)),
+            ),
+        );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>BulletPlugin</code>を<code>playing/mod.rs</code>の方で追加するのを忘れないでください。</p>
+<p>プレイヤーに弾丸を発射するシステムを追加します。(<code>playing/player.rs</code>)</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn shoot(
+    mut commands: Commands,
+    query: Query&lt;(&amp;Transform, &amp;Character), With&lt;Player&gt;&gt;,
+    keyboard: Res&lt;ButtonInput&lt;KeyCode&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+) {
+    for (transform, &amp;owner) in query {
+        if keyboard.just_pressed(KeyCode::Space) {
+            bullet::spawn_bullet(
+                &amp;mut commands,
+                owner,
+                transform.translation,
+                transform.forward(),
+                &amp;mut meshes,
+                &amp;mut materials,
+            );
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>PlayerPlugin</code>に追加するのも忘れずに。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(OnEnter(crate::state::GameState::Playing), spawn_player)
+            .add_systems(
+                Update,
+                (move_player, shoot).run_if(
+                    in_state(crate::state::GameState::Playing)
+                        .and(in_state(super::InGameState::Running)),
+                ),
+            );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これで弾丸の発射までできるようになりました。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="球"><a class="header" href="#球">球</a></h1>
+<h1 id="敵"><a class="header" href="#敵">敵</a></h1>
+<p><code>Enemy</code>コンポーネントと定数を作ります。<code>playing/enemy.rs</code></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Component)]
+pub struct Enemy;
+
+const SHOOT_RATE: i32 = 3;
+const SHOOT_CHANCE_MAX: i32 = 10;
+const SHOOT_INTERVAL: f32 = 0.3;
+const ENEMY_MAX_HP: f32 = 100.0;
+
+const ENEMY_SPAWN_X_RANGE: std::ops::RangeInclusive&lt;i32&gt; = -9..=9;
+const ENEMY_SPAWN_Y: f32 = 0.0;
+const ENEMY_SPAWN_Z: f32 = 10.0;
+
+const ENEMY_SPEED_LIMIT: f32 = 2.0;
+<span class="boring">}</span></code></pre>
+<p>敵をスポーンする関数を作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn spawn_enemy(
+    commands: &amp;mut Commands,
+    meshes: &amp;mut Assets&lt;Mesh&gt;,
+    materials: &amp;mut Assets&lt;StandardMaterial&gt;,
+    translation: Vec3,
+) {
+    let mut rng = rand::rng();
+    commands.spawn((
+        DespawnOnExit(crate::state::GameState::Playing),
+        Character::Enemy,
+        Enemy,
+        super::utils::Interval {
+            time: 0.0,
+            interval: SHOOT_INTERVAL,
+        },
+        HP(ENEMY_MAX_HP),
+        Transform::from_translation(translation).looking_to(-Vec3::Z, Vec3::Y),
+        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::BLACK,
+            emissive: Color::srgb(1.0, 0.1, 0.1).to_linear(),
+            ..default()
+        })),
+        Control {
+            speed_limit: ENEMY_SPEED_LIMIT,
+            mass: 1.0,
+            velocity: Vec3 {
+                x: rng.random_range(-1.0..1.0),
+                y: 0.0,
+                z: rng.random_range(-1.0..0.0),
+            },
+            ..default()
+        },
+    ));
+}
+<span class="boring">}</span></code></pre>
+<p>また、ランダムな位置にスポーンする関数と初期配置をするシステムを作ります。ランダムな位置へのスポーンは敵が倒されたり範囲外に出てリスポーンするときに使います。乱数を使いたいので<code>rand</code>というライブラリクレートを使います。</p>
+<pre><code class="language-toml">rand = "0.10.1"
+</code></pre>
+<p>をCargo.tomlに追加</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rand::prelude::*;
+pub fn spawn_random_enemy(
+    commands: &amp;mut Commands,
+    meshes: &amp;mut Assets&lt;Mesh&gt;,
+    materials: &amp;mut Assets&lt;StandardMaterial&gt;,
+) {
+    let mut rng = rand::rng();
+    let x = rng.random_range(ENEMY_SPAWN_X_RANGE);
+    spawn_enemy(
+        commands,
+        meshes,
+        materials,
+        Vec3 {
+            x: x as f32,
+            y: ENEMY_SPAWN_Y,
+            z: ENEMY_SPAWN_Z,
+        },
+    );
+}
+
+fn setup_enemies(
+    mut commands: Commands,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+) {
+    for i in -3..=3 {
+        spawn_enemy(
+            &amp;mut commands,
+            &amp;mut meshes,
+            &amp;mut materials,
+            Vec3 {
+                x: (i * 3) as f32,
+                y: ENEMY_SPAWN_Y,
+                z: ENEMY_SPAWN_Z,
+            },
+        );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>範囲外に出た敵をデスポーンして新たな敵をスポーンします。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>const ENEMY_X_LIMIT: f32 = 19.0;
+const ENEMY_NEG_X_LIMIT: f32 = -19.0;
+const ENEMY_Z_LIMIT: f32 = 15.0;
+const ENEMY_NEG_Z_LIMIT: f32 = -6.0;
+
+fn delete_out_of_range_enemy(
+    query: Query&lt;(&amp;Transform, Entity), With&lt;Enemy&gt;&gt;,
+    mut commands: Commands,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+) {
+    for (translation, entity) in query
+        .iter()
+        .map(|(transform, entity)| (transform.translation, entity))
+    {
+        let x = translation.x;
+        let z = translation.z;
+        if !(ENEMY_NEG_X_LIMIT..=ENEMY_X_LIMIT).contains(&amp;x)
+            || !(ENEMY_NEG_Z_LIMIT..=ENEMY_Z_LIMIT).contains(&amp;z)
+        {
+            commands.entity(entity).despawn();
+            spawn_random_enemy(&amp;mut commands, &amp;mut meshes, &amp;mut materials);
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>また、敵にも弾丸を発射するシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn enemy_shoot(
+    mut commands: Commands,
+    query: Query&lt;(&amp;Transform, &amp;Character, &amp;mut super::utils::Interval), With&lt;Enemy&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+) {
+    for (transform, &amp;owner, mut interval) in query {
+        let mut rng = rand::rng();
+        let random_val = rng.random_range(0..SHOOT_CHANCE_MAX);
+        let is_ready = interval.is_ready();
+        if is_ready {
+            interval.reset();
+        }
+        if is_ready &amp;&amp; random_val &lt;= SHOOT_RATE {
+            super::bullet::spawn_bullet(
+                &amp;mut commands,
+                owner,
+                transform.translation,
+                transform.forward(),
+                &amp;mut meshes,
+                &amp;mut materials,
+            );
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これらのシステムをこれまで同様にプラグインに追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use super::utils::*;
+use bevy::prelude::*;
+use rand::prelude::*;
+pub struct EnemyPlugin;
+
+impl Plugin for EnemyPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(OnEnter(crate::state::GameState::Playing), setup_enemies)
+            .add_systems(
+                Update,
+                (enemy_shoot, delete_out_of_range_enemy).run_if(
+                    in_state(crate::state::GameState::Playing)
+                        .and(in_state(super::InGameState::Running)),
+                ),
+            );
+    }
+}
+<span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="hp"><a class="header" href="#hp">HP</a></h1>
+<p>HpUIの更新とHPが0になったときのシステムを書きます。</p>
+<p>HpUIの更新とプレイヤーのHPが0になったときの処理をするシステムを作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use crate::playing::CurrentScore;
+
+use super::utils::*;
+use bevy::prelude::*;
+
+#[derive(Component)]
+pub struct HpUI;
+
+pub fn update_player_hp(
+    mut commands: Commands,
+    mut ui_query: Query&lt;&amp;mut Text, With&lt;HpUI&gt;&gt;,
+    player: Query&lt;(Entity, &amp;HP), With&lt;super::player::Player&gt;&gt;,
+    mut game_state: ResMut&lt;NextState&lt;crate::state::GameState&gt;&gt;,
+) {
+    let mut ui = match ui_query.single_mut() {
+        Ok(ui) =&gt; ui,
+        Err(_) =&gt; {
+            warn!("Expected exactly one HP UI entity, but found none or multiple.");
+            return;
+        }
+    };
+    let (player_entity, hp) = match player.single() {
+        Ok(p) =&gt; p,
+        Err(_) =&gt; {
+            warn!("Expected exactly one Player entity, but found none or multiple.");
+            return;
+        }
+    };
+    **ui = format!("HP: {}", hp.0);
+    if hp.0 &lt;= 0.0 {
+        commands.entity(player_entity).despawn();
+        game_state.set(crate::state::GameState::Result);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>敵のHPが0になったときに敵をデスポーンしKillをカウントアップするシステムを作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn handle_enemy_death(
+    mut commands: Commands,
+    query: Query&lt;(Entity, &amp;HP, &amp;Character)&gt;,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+    mut current_score: ResMut&lt;CurrentScore&gt;,
+) {
+    for (entity, hp, &amp;character) in query {
+        if character == Character::Player {
+            continue;
+        }
+        if hp.0 &lt;= 0.0 {
+            commands.entity(entity).despawn();
+            if character == Character::Enemy {
+                current_score.0.kill += 1;
+                super::enemy::spawn_random_enemy(&amp;mut commands, &amp;mut meshes, &amp;mut materials);
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これらのシステムを<code>HpPlugin</code>に追加する。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use crate::state;
+
+pub struct HpPlugin;
+
+impl Plugin for HpPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(
+            Update,
+            (update_player_hp, handle_enemy_death).chain().run_if(
+                in_state(state::GameState::Playing).and(in_state(super::InGameState::Running)),
+            ),
+        );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>また、このプラグインも<code>playing/mod.rs</code>の方に追加するのを忘れないように。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="result画面の作成"><a class="header" href="#result画面の作成">Result画面の作成</a></h1>
+<p>リザルト画面では、今回のリザルト、今回のを含めたスコアの履歴を順位の順で表示、リトライボタン(Home画面に戻る)で構成されます。まずは<code>result/mod.rs</code>を作ってください</p>
+<p>リザルト画面の初期化をするシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use crate::playing::{Score, ScoreList};
+use crate::state;
+use bevy::prelude::*;
+
+#[derive(Component)]
+struct RetryButton;
+
+#[derive(Component)]
+struct ResultText;
+
+fn setup_result_ui(commands: &amp;mut Commands, asset_server: &amp;AssetServer, score_list: &amp;ScoreList) {
+    let mut score_score_list = String::from("Ranking\n");
+    let mut sorted_score_list = score_list.0.clone();
+    sorted_score_list.sort_by(|a, b| a.score().partial_cmp(&amp;b.score()).expect("NaN in Score"));
+    sorted_score_list
+        .iter()
+        .rev()
+        .map(|score| score.score())
+        .enumerate()
+        .for_each(|(rank, score)| {
+            score_score_list.push_str(&amp;format!("No. {}: {:.2}\n", rank + 1, score))
+        });
+    commands.spawn((
+        DespawnOnExit(state::GameState::Result),
+        Node {
+            width: percent(100),
+            height: percent(100),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(10.0),
+            ..default()
+        },
+        children![
+            (
+                Text::new(score_list.0.last().unwrap_or(&amp;Score::default()).to_string()),
+                ResultText,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+            (
+                Button,
+                RetryButton,
+                Node {
+                    width: percent(20),
+                    height: percent(10),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border_radius: BorderRadius::MAX,
+                    ..default()
+                },
+                BorderColor::all(Color::WHITE),
+                BackgroundColor(Color::WHITE),
+                children![(
+                    Text::new("Retry"),
+                    TextFont {
+                        font: asset_server.load(
+                            "embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"
+                        ),
+                        font_size: 40.0,
+                        ..default()
+                    },
+                    TextLayout::new_with_justify(Justify::Center),
+                    TextColor::BLACK,
+                )]
+            ),
+            (
+                Text::new(score_score_list),
+                ResultText,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+        ],
+    ));
+}
+
+fn setup_result_screen(
+    mut commands: Commands,
+    asset_server: Res&lt;AssetServer&gt;,
+    score_list: Res&lt;ScoreList&gt;,
+) {
+    // spawn a camera
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z),
+        DespawnOnExit(state::GameState::Result),
+    ));
+    setup_result_ui(&amp;mut commands, &amp;asset_server, &amp;score_list);
+}
+<span class="boring">}</span></code></pre>
+<p>リトライボタンの動作のシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>type RetryButtonInputs = (Changed&lt;Interaction&gt;, With&lt;RetryButton&gt;);
+fn update_retry_button(
+    mut query: Query&lt;(&amp;Interaction, &amp;mut BackgroundColor), RetryButtonInputs&gt;,
+    mut game_state: ResMut&lt;NextState&lt;state::GameState&gt;&gt;,
+) {
+    for (interaction, mut background_color) in query.iter_mut() {
+        match interaction {
+            Interaction::Pressed =&gt; {
+                background_color.0 = Color::srgb(0.5, 0.5, 0.5);
+                game_state.set(state::GameState::Home);
+            }
+            Interaction::Hovered =&gt; {
+                background_color.0 = Color::srgb(0.7, 0.7, 0.7);
+            }
+            Interaction::None =&gt; {
+                background_color.0 = Color::srgb(0.9, 0.9, 0.9);
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>これらのシステムをプラグインを作ってそこに入れます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ResultPlugin;
+
+impl Plugin for ResultPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.add_systems(OnEnter(state::GameState::Result), setup_result_screen)
+            .add_systems(
+                Update,
+                update_retry_button.run_if(in_state(state::GameState::Result)),
+            );
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>このプラグインは<code>main.rs</code>にあるappに追加してください。最終的な<code>main.rs</code>は次のようになります。</p>
+<pre class="playground"><code class="language-rust">#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use bevy::prelude::*;
+mod home;
+mod state;
+mod playing;
+mod result;
+
+fn main() {
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins);
+    bevy::asset::embedded_asset!(app, "fonts/NotoSansJP-Bold.ttf");
+    bevy::asset::embedded_asset!(app, "img/invader_background.png");
+    app.add_plugins(state::GameStatePlugin)
+        .add_plugins(home::HomePlugin)
+        .add_plugins(playing::PlayingPlugin)
+        .add_plugins(result::ResultPlugin)
+        .run();
+}</code></pre>
+<p>これで完成です。お疲れ様でした。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="全章を一つのページにまとめたもの"><a class="header" href="#全章を一つのページにまとめたもの">全章を一つのページにまとめたもの</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>
