@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "../searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1b60c374.js"></script>
@@ -174,27 +174,10 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="playing画面全体の流れとui"><a class="header" href="#playing画面全体の流れとui">Playing画面全体の流れとUI</a></h1>
-<p>ここではPlugin、一時停止ボタン、再開ボタン、スコアテキスト、リザルト画面への遷移を実装します。</p>
-<p>まず、<code>playing/mod.rs</code>に<code>PlayingPlugin</code>を作成します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use bevy::prelude::*;
-
-pub struct PlayingPlugin;
-
-impl Plugin for PlayingPlugin {
-    fn build(&amp;self, app: &amp;mut App) {
-        
-    }
-}
-<span class="boring">}</span></code></pre>
-<p>次に、<code>PlayingPlugin</code>を<code>main.rs</code>の<code>app</code>に追加します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>app.add_plugins(playing::PlayingPlugin);
-<span class="boring">}</span></code></pre>
-<p>また、<code>playing/mod.rs</code>に<code>playing/</code>内にあるモジュールを書き込みます</p>
+                        <h1 id="playing画面全体の流れとuiの実装"><a class="header" href="#playing画面全体の流れとuiの実装">Playing画面全体の流れとUIの実装</a></h1>
+<p>ここでは、メインのゲームループを管理する <code>PlayingPlugin</code> の作成に加え、一時停止・再開ボタン、スコア表記、ゲームプレイ中のステート管理、およびリザルト画面への遷移を実装します。</p>
+<p>まず、<code>playing/mod.rs</code> を作成して <code>PlayingPlugin</code> を用意します。作成したプラグインは、これまでと同様に <code>main.rs</code> の <code>App</code> に登録しておきましょう。</p>
+<p>さらに、<code>playing/</code> フォルダ内にある各サブモジュールを公開し、<code>GameState</code> を利用可能にします。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub mod bullet;
@@ -202,17 +185,13 @@ pub mod enemy;
 pub mod hp;
 pub mod player;
 pub mod utils;
+
+use crate::state;
 <span class="boring">}</span></code></pre>
-<p>また、<code>GameState</code>も使うので<code>use</code>に入れておきます</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use crate::state;
-<span class="boring">}</span></code></pre>
-<p>ここで、<code>crate</code>はルートを指す、つまり<code>main.rs</code>にあるものを指し、<code>main.rs</code>に展開されている<code>state</code>を使うということです。</p>
-<p>ではUIを作っていきます。
-<code>playing/mod.rs</code>内に<code>UI</code>,<code>PauseButton</code>,<code>ResumeButton</code>,<code>TimeUI</code>,<code>KillUI</code>をコンポーネントとして作ります。</p>
-<p><code>InGameState</code>というステートも作ることでゲームが動いているか止まっているかを管理します。</p>
-<p><code>setup_ui</code>関数でUI全体がどういう構成かを書いてバンドルとして返します。(ここでhp::HpUIというまだ作ってないコンポーネントが出てくるので<code>playing/hp.rs</code>で定義だけしといてください。)</p>
+<p>ここで、<code>crate</code> はプロジェクトのルート（<code>src/</code>）を指します。つまり <code>main.rs</code> で定義されている <code>state</code> モジュールを参照しています。</p>
+<p>それでは、ゲームプレイ中のUIを構築していきましょう。
+<code>playing/mod.rs</code> 内に、UI要素を識別するための各コンポーネントと、ゲーム内の進行状態を管理する <code>InGameState</code> を定義します。</p>
+<p>また、UIのレイアウト構造を定義する <code>setup_ui</code> 関数を作成します。ここで <code>hp::HpUI</code> というコンポーネントを使用しますが、これは後ほど <code>playing/hp.rs</code> で実装するため、現時点では定義のみ済ませておいてください。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
@@ -349,7 +328,8 @@ fn setup_ui(asset_server: &amp;AssetServer) -&gt; impl Bundle {
     )
 }
 <span class="boring">}</span></code></pre>
-<p>では次に現在のスコアと過去のスコアのリストのリソースを定義します(<code>playing/mod.rs</code>)。リソースとはアプリ全体に一つだけ存在し、どのシステムからでもアクセスできるシングルトン的なデータストレージです。</p>
+<p>次に、ゲームの進行情報を保持するための「リソース（Resource）」を定義します。
+リソースとは、アプリケーション全体で共有されるシングルトンなデータストレージであり、どのシステムからでも容易にアクセス・変更ができる Bevy の重要な機能です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// スコアの構造を定義
@@ -392,7 +372,7 @@ fn push_score_list(mut score_list: ResMut&lt;ScoreList&gt;, current_score: Res&l
     score_list.0.push(current_score.0);
 }
 <span class="boring">}</span></code></pre>
-<p>時間を管理するためのストップウォッチのリソースを定義します(<code>playing/mod.rs</code>)。</p>
+<p>また、ゲーム経過時間を管理するためのストップウォッチ機能もリソースとして定義しておきましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Resource, Default)]
@@ -436,7 +416,7 @@ fn start_stopwatch_res(mut stopwatch: ResMut&lt;StopWatch&gt;) {
     stopwatch.start();
 }
 <span class="boring">}</span></code></pre>
-<p><code>TimeUI</code>や<code>KillUI</code>を更新するシステムと一時停止ボタンと再開ボタンを動作させるシステムを作ります(<code>playing/mod.rs</code>)。</p>
+<p>定義したリソースを画面上に表示するためのUI更新システムと、一時停止・再開ボタンのインタラクション処理を実装します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn update_time_ui(stopwatch: Res&lt;StopWatch&gt;, mut time_ui_query: Query&lt;&amp;mut Text, With&lt;TimeUI&gt;&gt;) {
@@ -501,7 +481,7 @@ fn update_pause_button(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>また、時間制限を超えたらリザルト画面に行くシステムも作ります。</p>
+<p>最後に、制限時間を超過した際に自動的にリザルト画面へ遷移する判定システムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const TIME_LIMIT: f32 = 100.0;
@@ -517,12 +497,12 @@ fn check_time_limit(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>次は背景を用意します。適当な画像を用意して<code>src/img/invader_background.png</code>にでもおいておきます。<code>main.rs</code>につぎのを追加します。</p>
+<p>背景用の画像（例：<code>src/img/invader_background.png</code>）もアセットとして埋め込んでおきましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>bevy::asset::embedded_asset!(app, "img/invader_background.png");
 <span class="boring">}</span></code></pre>
-<p>Playing画面の初期配置をするシステムを作ります。</p>
+<p>これらすべての要素を初期化・配置するための、<code>Playing</code> 画面専用のセットアップシステムを定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn setup_playing(
@@ -561,7 +541,7 @@ fn check_time_limit(
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>ではステート、リソース、システムを<code>app</code>に追加していきます。</p>
+<p>最後に、これまでに定義したステート、リソース、および各システムを <code>PlayingPlugin</code> に集約し、App に登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl Plugin for PlayingPlugin {

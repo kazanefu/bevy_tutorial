@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -174,9 +174,9 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="result画面の作成"><a class="header" href="#result画面の作成">Result画面の作成</a></h1>
-<p>リザルト画面では、今回のリザルト、今回のを含めたスコアの履歴を順位の順で表示、リトライボタン(Home画面に戻る)で構成されます。まずは<code>result/mod.rs</code>を作ってください</p>
-<p>リザルト画面の初期化をするシステムを作ります。</p>
+                        <h1 id="result画面結果表示の作成"><a class="header" href="#result画面結果表示の作成">Result画面（結果表示）の作成</a></h1>
+<p>リザルト画面は、今回のスコア表示、これまでのスコア履歴（ランキング形式）、およびタイトル画面へ戻るためのリトライボタンで構成されます。まずは、<code>src/result/mod.rs</code> を作成しましょう。</p>
+<p>リザルト画面のUIを初期化するシステムを実装します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use crate::playing::{Score, ScoreList};
@@ -281,7 +281,7 @@ fn setup_result_screen(
     setup_result_ui(&amp;mut commands, &amp;asset_server, &amp;score_list);
 }
 <span class="boring">}</span></code></pre>
-<p>リトライボタンの動作のシステムを作ります。</p>
+<p>リトライボタンが押された際にタイトル画面（Home）へ戻るためのシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>type RetryButtonInputs = (Changed&lt;Interaction&gt;, With&lt;RetryButton&gt;);
@@ -305,7 +305,7 @@ fn update_retry_button(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムをプラグインを作ってそこに入れます。</p>
+<p>これらのシステムをまとめて管理する <code>ResultPlugin</code> を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct ResultPlugin;
@@ -320,7 +320,7 @@ impl Plugin for ResultPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>このプラグインは<code>main.rs</code>にあるappに追加してください。最終的な<code>main.rs</code>は次のようになります。</p>
+<p>最後に、この <code>ResultPlugin</code> を <code>main.rs</code> に登録します。これですべての画面の実装が揃いました！ 最終的な <code>main.rs</code> の内容は以下の通りです。</p>
 <pre class="playground"><code class="language-rust">#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::prelude::*;
 mod home;

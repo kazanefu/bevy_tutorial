@@ -1,6 +1,6 @@
 # 環境構築
 
-検証済み環境であればほぼ確実にできると思いますが、多分他の環境でも似たような感じでできると思います。
+以下の手順に従って、開発環境を構築します。検証済み環境以外でも、同様の手順で構築可能です。
 
 **検証済み環境**
 
@@ -10,41 +10,41 @@
 
 ## Rustのインストール
 
-[https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)に行き、手順に従ってインストールします。この辺のは公式に日本語のわかりやすい説明があるので[The Rust Programming Language 日本語版](https://doc.rust-jp.rs/book-ja/ch01-01-installation.html#windows%E3%81%A7rustup%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%99%E3%82%8B)を参考にしてください。
+[公式サイト](https://www.rust-lang.org/tools/install)の手順に従ってインストールしてください。インストールの詳細については、[The Rust Programming Language 日本語版](https://doc.rust-jp.rs/book-ja/ch01-01-installation.html#windows%E3%81%A7rustup%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%99%E3%82%8B)が参考になります。
 
 ## Rust Analyzerのインストール
 
-VSCodeを使っている場合は、拡張機能からRust Analyzerをインストールします。これがあるだけでコードの補完やエラーチェックが効くので入れておくといいです。
+VSCodeを使用している場合は、拡張機能から「Rust Analyzer」をインストールしてください。コード補完やリアルタイムのエラーチェックが可能になるため、導入を強く推奨します。
 
 ## Bevyのインストール
 
-あとでCargo.tomlにbevyを追加するだけでいいので、ここでは割愛します。
+後ほど `Cargo.toml` に Bevy を追記するため、この段階での個別のインストール作業は不要です。
 
-## プロジェクトの作成
+ターミナル（またはコマンドプロンプト）で以下のコマンドを実行し、プロジェクトを作成します。
 
 ```bash
 cargo new invader_tutorial
 cd invader_tutorial
 ```
 
-このフォルダを適当なテキストエディタで開きます。VSCodeがおすすめですが、お好きなもので大丈夫です。
+作成されたフォルダを、VSCodeなどの任意のテキストエディタで開いてください。
 
 ## Bevyの追加
 
-Cargo.tomlに以下を追加します。
+`Cargo.toml` に以下を追記します。
 
 ```toml
 [dependencies]
 bevy = "0.18.1"
 ```
 
-.cargo/config.tomlに以下を追加します。
+次に、`.cargo/config.toml` （フォルダがない場合は作成してください）に以下を追記します。
 
 ```toml
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
 ```
-まだCargo.tomlに以下を追加します
+また、`Cargo.toml` に以下のプロファイル設定を追加します。
 ```toml
 [profile.dev]
 opt-level = 1
@@ -53,6 +53,6 @@ opt-level = 3
 [features]
 dynamic_linking = ["bevy/dynamic_linking"]
 ```
-これはビルドを速くするための設定です。
+これは、ビルド速度を向上させるための設定です。
 
-環境構築はこれで完了です。
+以上で環境構築は完了です。

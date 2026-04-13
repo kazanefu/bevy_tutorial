@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -174,20 +174,23 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="home画面を作る"><a class="header" href="#home画面を作る">Home画面を作る</a></h1>
-<p>Home画面は、ゲームが始まったときに開かれる画面で、<code>Start</code>ボタンが配置されており、押すと<code>Playing</code>画面に遷移します。</p>
-<p>まずUIで使うテキストのためのフォントを準備してください。ここでは<code>fonts/NotoSansJP-Bold.ttf</code>を<code>src/</code>の直下に置きます。次に<code>main.rs</code>の<code>main</code>関数の中を以下のように変更します。</p>
+                        <h1 id="home画面タイトル画面の作成"><a class="header" href="#home画面タイトル画面の作成">Home画面（タイトル画面）の作成</a></h1>
+<p>Home画面は、アプリ起動時に最初に表示される画面です。中央に配置された <code>Start</code> ボタンをクリックすることで、ゲーム本編（Playing 画面）へと遷移します。</p>
+<p>まずは、UIで使用するフォントの準備が必要です。ここでは、<code>fonts/NotoSansJP-Bold.ttf</code> というファイルを <code>src/</code> 直下に配置して使用します。次に、<code>main.rs</code> の <code>main</code> 関数を以下のように書き換えて、フォントアセットをアプリに埋め込みます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut app = App::new();
-app.add_plugins(DefaultPlugins); // DefaultPluginsを先に足す
-bevy::asset::embedded_asset!(app, "fonts/NotoSansJP-Bold.ttf"); // フォントをassetとして埋め込む
+app.add_plugins(DefaultPlugins); 
+
+// フォントファイルをバイナリに埋め込み、アセットとして利用可能にする
+bevy::asset::embedded_asset!(app, "fonts/NotoSansJP-Bold.ttf"); 
+
 app.add_plugins(state::GameStatePlugin)
     .add_plugins(home::HomePlugin)
     .run();
 <span class="boring">}</span></code></pre>
-<p>これでフォントがassetとして埋め込まれました。</p>
-<p>次に<code>home/mod.rs</code>を作成します。また、<code>main.rs</code>に<code>mod home;</code>を追加します。</p>
+<p><code>bevy::asset::embedded_asset!</code> マクロを使用することで、外部ファイルに依存せず実行ファイル単体でフォントを表示できるようになります。</p>
+<p>続いて、<code>src/home/mod.rs</code> を作成します。同時に、<code>main.rs</code> でこのモジュールを扱えるよう <code>mod home;</code> を追記してください。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// src/home/mod.rs
@@ -198,7 +201,7 @@ pub struct HomePlugin;
 
 impl Plugin for HomePlugin {
     fn build(&amp;self, app: &amp;mut App) {
-        
+        // ここにシステムを登録していきます
     }
 }
 <span class="boring">}</span></code></pre>
@@ -208,13 +211,13 @@ impl Plugin for HomePlugin {
 </span>app.add_plugins(home::HomePlugin);
 <span class="boring">}</span></code></pre>
 <p>では、Home画面のUI(Startボタン)を実装していきます。</p>
-<p>まず<code>StartButton</code>という名前のコンポーネントを作ります。</p>
+<p>まずは、UI要素を識別するための <code>StartButton</code> コンポーネントと、ボタンの見た目を定義する関数を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
 pub struct StartButton;
 <span class="boring">}</span></code></pre>
-<p>また、UIのバンドルを作るための関数を作ります。</p>
+<p>UIの構成（バンドル）を定義する関数を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn start_button_bundle(assets_server: Res&lt;AssetServer&gt;) -&gt; impl Bundle {
@@ -256,7 +259,7 @@ pub struct StartButton;
     )
 }
 <span class="boring">}</span></code></pre>
-<p>これをHome画面に来たときにspawnするようにします。</p>
+<p>このUIレイアウトを、Home画面に遷移したタイミングで生成（スポーン）するように設定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn setup_home_screen(mut commands: Commands, assets_server: Res&lt;AssetServer&gt;) {
@@ -279,7 +282,7 @@ pub struct StartButton;
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>StartButton</code>が表示されるようになりましたが、押しても何も起こりません。そこで、<code>StartButton</code>が押されたときに<code>Playing</code>画面に遷移するようにします。</p>
+<p>これでStartボタンが表示されるようになりましたが、まだクリックしても反応がありません。そこで、ボタンが押されたことを検知して <code>Playing</code> 状態へ遷移するシステムを実装します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>type StartButtonInputs = (Changed&lt;Interaction&gt;, With&lt;StartButton&gt;);

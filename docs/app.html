@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -175,18 +175,30 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="appの作成"><a class="header" href="#appの作成">Appの作成</a></h1>
-<p>main.rsを以下のように書き換えます。</p>
+<p><code>main.rs</code> を以下のように書き換えます。</p>
 <pre class="playground"><code class="language-rust">#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::prelude::*;
 
 fn main() {
     App::new().add_plugins(DefaultPlugins).run();
 }</code></pre>
-<p>一行目はリリースビルドの時にコンソールウィンドウを表示しないための設定です。</p>
-<p>二行目は bevyクレートのネームスペースを使うためのものです。</p>
-<p><code>main</code>関数はプログラムのエントリーポイントです。ここでは<code>App::new()</code>でAppのインスタンスを作成し、<code>run()</code>で実行しています。</p>
-<p><code>add_plugins(DefaultPlugins)</code>は、ウィンドウの表示やキーボード入力、マウス入力など、ゲームに必要な基本的な機能をまとめて追加するためのものです。</p>
-<p>これで<code>cargo run</code>を実行すると、ウィンドウが表示されます。(<code>cargo run</code>は<code>cargo build</code>してから<code>target/debug/invader_tutorial.exe</code>を実行するのと同じです。)</p>
+<p>各行の役割を解説します。</p>
+<ul>
+<li>
+<p><strong>1行目</strong>: リリースビルド時にコンソールウィンドウを表示させないための設定です。</p>
+</li>
+<li>
+<p><strong>2行目</strong>: Bevyで頻繁に使用する機能をまとめた「プレリュード（prelude）」をインポートしています。</p>
+</li>
+<li>
+<p><strong>main関数</strong>: プログラムのエントリーポイントです。<code>App::new()</code> でアプリケーションを初期化し、<code>run()</code> でゲームループを開始します。</p>
+</li>
+<li>
+<p><strong>add_plugins(DefaultPlugins)</strong>: ウィンドウ表示、キー入力、アセット管理など、ゲームに必要な基本機能をまとめて追加します。</p>
+</li>
+</ul>
+<p>この状態で <code>cargo run</code> を実行すると、空のウィンドウが表示されます。
+（※<code>cargo run</code> は、ビルドを行ってから生成されたバイナリを実行するコマンドです。）</p>
 <p><img src="./img/app.png" alt="app"></p>
 
                     </main>

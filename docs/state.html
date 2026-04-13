@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -175,19 +175,19 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="stateの追加"><a class="header" href="#stateの追加">Stateの追加</a></h1>
-<p><code>state.rs</code>を作成し、以下のように書きます</p>
+<p>ゲーム内の画面遷移（タイトル画面、プレイ中、結果表示など）を管理するために、<code>src/state.rs</code> を作成して以下の通り記述します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum GameState {
-    /// Initial screen.
+    /// タイトル画面
     #[default]
     Home,
-    /// Playing screen.
+    /// ゲームプレイ中
     Playing,
-    /// GameResult screen.
+    /// 結果表示画面
     Result,
 }
 
@@ -195,6 +195,7 @@ pub struct GameStatePlugin;
 
 impl Plugin for GameStatePlugin {
     fn build(&amp;self, app: &amp;mut App) {
+        // AppにGameStateを登録
         app.init_state::&lt;GameState&gt;();
     }
 }

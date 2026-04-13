@@ -1,8 +1,8 @@
-# HP
+# HPと死亡処理の実装
 
-HpUIの更新とHPが0になったときのシステムを書きます。
+HPを表示するUIの更新と、HPが0になった際の判定を行うシステムを実装します。
 
-HpUIの更新とプレイヤーのHPが0になったときの処理をするシステムを作る。
+まずは、プレイヤーのHP UIの更新と、HPが0になった時のリザルト画面への遷移を処理するシステムを作成します。
 ```rust
 use crate::playing::CurrentScore;
 
@@ -40,7 +40,7 @@ pub fn update_player_hp(
 }
 ```
 
-敵のHPが0になったときに敵をデスポーンしKillをカウントアップするシステムを作る。
+次に、敵のHPを監視し、0になった場合にデスポーン（消去）してスコアを加算するシステムを作成します。
 ```rust
 pub fn handle_enemy_death(
     mut commands: Commands,
@@ -64,7 +64,7 @@ pub fn handle_enemy_death(
 }
 ```
 
-これらのシステムを`HpPlugin`に追加する。
+これらのシステムを `HpPlugin` に登録します。
 ```rust
 use crate::state;
 
@@ -81,4 +81,4 @@ impl Plugin for HpPlugin {
     }
 }
 ```
-また、このプラグインも`playing/mod.rs`の方に追加するのを忘れないように。
+他のプラグインと同様に、`playing/mod.rs` にこの `HpPlugin` を追加するのを忘れないようにしてください。

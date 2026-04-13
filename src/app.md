@@ -1,6 +1,6 @@
 # Appの作成
 
-main.rsを以下のように書き換えます。
+`main.rs` を以下のように書き換えます。
 
 ```rust
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -10,14 +10,15 @@ fn main() {
     App::new().add_plugins(DefaultPlugins).run();
 }
 ```
-一行目はリリースビルドの時にコンソールウィンドウを表示しないための設定です。
+各行の役割を解説します。
 
-二行目は bevyクレートのネームスペースを使うためのものです。
+- **1行目**: リリースビルド時にコンソールウィンドウを表示させないための設定です。
+- **2行目**: Bevyで頻繁に使用する機能をまとめた「プレリュード（prelude）」をインポートしています。
 
-`main`関数はプログラムのエントリーポイントです。ここでは`App::new()`でAppのインスタンスを作成し、`run()`で実行しています。
+- **main関数**: プログラムのエントリーポイントです。`App::new()` でアプリケーションを初期化し、`run()` でゲームループを開始します。
+- **add_plugins(DefaultPlugins)**: ウィンドウ表示、キー入力、アセット管理など、ゲームに必要な基本機能をまとめて追加します。
 
-`add_plugins(DefaultPlugins)`は、ウィンドウの表示やキーボード入力、マウス入力など、ゲームに必要な基本的な機能をまとめて追加するためのものです。
-
-これで`cargo run`を実行すると、ウィンドウが表示されます。(`cargo run`は`cargo build`してから`target/debug/invader_tutorial.exe`を実行するのと同じです。)
+この状態で `cargo run` を実行すると、空のウィンドウが表示されます。
+（※`cargo run` は、ビルドを行ってから生成されたバイナリを実行するコマンドです。）
 
 ![app](./img/app.png)

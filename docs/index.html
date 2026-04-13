@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -175,7 +175,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="環境構築"><a class="header" href="#環境構築">環境構築</a></h1>
-<p>検証済み環境であればほぼ確実にできると思いますが、多分他の環境でも似たような感じでできると思います。</p>
+<p>以下の手順に従って、開発環境を構築します。検証済み環境以外でも、同様の手順で構築可能です。</p>
 <p><strong>検証済み環境</strong></p>
 <ul>
 <li>Windows 11</li>
@@ -183,26 +183,26 @@
 <li>Bevy 0.18.1</li>
 </ul>
 <h2 id="rustのインストール"><a class="header" href="#rustのインストール">Rustのインストール</a></h2>
-<p><a href="https://www.rust-lang.org/tools/install">https://www.rust-lang.org/tools/install</a>に行き、手順に従ってインストールします。この辺のは公式に日本語のわかりやすい説明があるので<a href="https://doc.rust-jp.rs/book-ja/ch01-01-installation.html#windows%E3%81%A7rustup%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%99%E3%82%8B">The Rust Programming Language 日本語版</a>を参考にしてください。</p>
+<p><a href="https://www.rust-lang.org/tools/install">公式サイト</a>の手順に従ってインストールしてください。インストールの詳細については、<a href="https://doc.rust-jp.rs/book-ja/ch01-01-installation.html#windows%E3%81%A7rustup%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%99%E3%82%8B">The Rust Programming Language 日本語版</a>が参考になります。</p>
 <h2 id="rust-analyzerのインストール"><a class="header" href="#rust-analyzerのインストール">Rust Analyzerのインストール</a></h2>
-<p>VSCodeを使っている場合は、拡張機能からRust Analyzerをインストールします。これがあるだけでコードの補完やエラーチェックが効くので入れておくといいです。</p>
+<p>VSCodeを使用している場合は、拡張機能から「Rust Analyzer」をインストールしてください。コード補完やリアルタイムのエラーチェックが可能になるため、導入を強く推奨します。</p>
 <h2 id="bevyのインストール"><a class="header" href="#bevyのインストール">Bevyのインストール</a></h2>
-<p>あとでCargo.tomlにbevyを追加するだけでいいので、ここでは割愛します。</p>
-<h2 id="プロジェクトの作成"><a class="header" href="#プロジェクトの作成">プロジェクトの作成</a></h2>
+<p>後ほど <code>Cargo.toml</code> に Bevy を追記するため、この段階での個別のインストール作業は不要です。</p>
+<p>ターミナル（またはコマンドプロンプト）で以下のコマンドを実行し、プロジェクトを作成します。</p>
 <pre><code class="language-bash">cargo new invader_tutorial
 cd invader_tutorial
 </code></pre>
-<p>このフォルダを適当なテキストエディタで開きます。VSCodeがおすすめですが、お好きなもので大丈夫です。</p>
+<p>作成されたフォルダを、VSCodeなどの任意のテキストエディタで開いてください。</p>
 <h2 id="bevyの追加"><a class="header" href="#bevyの追加">Bevyの追加</a></h2>
-<p>Cargo.tomlに以下を追加します。</p>
+<p><code>Cargo.toml</code> に以下を追記します。</p>
 <pre><code class="language-toml">[dependencies]
 bevy = "0.18.1"
 </code></pre>
-<p>.cargo/config.tomlに以下を追加します。</p>
+<p>次に、<code>.cargo/config.toml</code> （フォルダがない場合は作成してください）に以下を追記します。</p>
 <pre><code class="language-toml">[target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
 </code></pre>
-<p>まだCargo.tomlに以下を追加します</p>
+<p>また、<code>Cargo.toml</code> に以下のプロファイル設定を追加します。</p>
 <pre><code class="language-toml">[profile.dev]
 opt-level = 1
 [profile.dev.package."*"]
@@ -210,8 +210,8 @@ opt-level = 3
 [features]
 dynamic_linking = ["bevy/dynamic_linking"]
 </code></pre>
-<p>これはビルドを速くするための設定です。</p>
-<p>環境構築はこれで完了です。</p>
+<p>これは、ビルド速度を向上させるための設定です。</p>
+<p>以上で環境構築は完了です。</p>
 
                     </main>
 

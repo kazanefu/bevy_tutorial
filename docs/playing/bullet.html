@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "../searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1b60c374.js"></script>
@@ -174,8 +174,8 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="弾丸"><a class="header" href="#弾丸">弾丸</a></h1>
-<p><code>playing/bullet.rs</code>で<code>Bullet</code>コンポーネントと定数たちを定義していきます。</p>
+                        <h1 id="弾丸の実装"><a class="header" href="#弾丸の実装">弾丸の実装</a></h1>
+<p><code>playing/bullet.rs</code> を作成し、<code>Bullet</code> コンポーネントと関連する定数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
@@ -196,7 +196,7 @@ const ENEMY_BULLET_DAMAGE: f32 = 3.0;
 const BULLET_COLLISION_RADIUS: f32 = 1.0;
 const BULLET_LIFE_TIME: f32 = 0.7;
 <span class="boring">}</span></code></pre>
-<p>弾丸の移動をするシステムを作ります。</p>
+<p>弾丸を移動させるためのシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn move_bullet(query: Query&lt;(&amp;mut Transform, &amp;Bullet)&gt;, time: Res&lt;Time&gt;) {
@@ -205,7 +205,7 @@ const BULLET_LIFE_TIME: f32 = 0.7;
     }
 }
 <span class="boring">}</span></code></pre>
-<p>弾丸は一定時間後に消えてほしいので一定時間をはかるコンポーネントを<code>playing/utils.rs</code>に追加します。</p>
+<p>弾丸は発射から一定時間後に消滅させる必要があるため、時間を計測するためのコンポーネントを <code>playing/utils.rs</code> に追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
@@ -232,7 +232,7 @@ fn tick_interval(time: Res&lt;Time&gt;, query: Query&lt;&amp;mut Interval&gt;) {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>tick_interval</code>システムをUtilPluginのbuild内でappに追加しておきます。</p>
+<p>作成した <code>tick_interval</code> システムを、<code>UtilPlugin</code> の <code>build</code> メソッド内で App に追加しておきます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct UtilPlugin;
@@ -249,7 +249,7 @@ impl Plugin for UtilPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>弾丸をスポーンする関数を作ります(<code>playing/bullet.rs</code>)。</p>
+<p>続いて、<code>playing/bullet.rs</code> に弾丸を生成（スポーン）するための関数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn spawn_bullet(
@@ -285,7 +285,7 @@ impl Plugin for UtilPlugin {
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>弾丸の衝突判定をするシステムを作る。</p>
+<p>弾丸とキャラクターの衝突判定を行うシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn bullet_collision(
@@ -310,7 +310,7 @@ impl Plugin for UtilPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>タイムアウトした弾丸を消去するシステムを作る。</p>
+<p>生存期間（Interval）が終了した弾丸を自動的に削除するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn remove_time_out_bullet(
@@ -324,7 +324,7 @@ impl Plugin for UtilPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>BulletPlugin</code>を作ってそこにシステムを追加します。</p>
+<p><code>BulletPlugin</code> を作成し、これまで定義したシステムを登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct BulletPlugin;
@@ -341,8 +341,8 @@ impl Plugin for BulletPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>BulletPlugin</code>を<code>playing/mod.rs</code>の方で追加するのを忘れないでください。</p>
-<p>プレイヤーに弾丸を発射するシステムを追加します。(<code>playing/player.rs</code>)</p>
+<p>作成した <code>BulletPlugin</code> を <code>playing/mod.rs</code> に追加するのを忘れないようにしてください。</p>
+<p>最後に、プレイヤーがスペースキーを押した時に弾丸を発射できるよう、<code>playing/player.rs</code> に発射システムを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn shoot(
@@ -366,7 +366,7 @@ impl Plugin for BulletPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>PlayerPlugin</code>に追加するのも忘れずに。</p>
+<p>作成した <code>shoot</code> システムを <code>PlayerPlugin</code> にも登録しましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PlayerPlugin;

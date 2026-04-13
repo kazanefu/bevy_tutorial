@@ -1,45 +1,26 @@
-# Playing画面全体の流れとUI
+# Playing画面全体の流れとUIの実装
 
-ここではPlugin、一時停止ボタン、再開ボタン、スコアテキスト、リザルト画面への遷移を実装します。
+ここでは、メインのゲームループを管理する `PlayingPlugin` の作成に加え、一時停止・再開ボタン、スコア表記、ゲームプレイ中のステート管理、およびリザルト画面への遷移を実装します。
 
-まず、`playing/mod.rs`に`PlayingPlugin`を作成します。
-```rust
-use bevy::prelude::*;
+まず、`playing/mod.rs` を作成して `PlayingPlugin` を用意します。作成したプラグインは、これまでと同様に `main.rs` の `App` に登録しておきましょう。
 
-pub struct PlayingPlugin;
+さらに、`playing/` フォルダ内にある各サブモジュールを公開し、`GameState` を利用可能にします。
 
-impl Plugin for PlayingPlugin {
-    fn build(&self, app: &mut App) {
-        
-    }
-}
-```
-
-次に、`PlayingPlugin`を`main.rs`の`app`に追加します。
-```rust
-app.add_plugins(playing::PlayingPlugin);
-```
-
-また、`playing/mod.rs`に`playing/`内にあるモジュールを書き込みます
 ```rust
 pub mod bullet;
 pub mod enemy;
 pub mod hp;
 pub mod player;
 pub mod utils;
-```
-また、`GameState`も使うので`use`に入れておきます
-```rust
+
 use crate::state;
 ```
-ここで、`crate`はルートを指す、つまり`main.rs`にあるものを指し、`main.rs`に展開されている`state`を使うということです。
+ここで、`crate` はプロジェクトのルート（`src/`）を指します。つまり `main.rs` で定義されている `state` モジュールを参照しています。
 
-ではUIを作っていきます。
-`playing/mod.rs`内に`UI`,`PauseButton`,`ResumeButton`,`TimeUI`,`KillUI`をコンポーネントとして作ります。
+それでは、ゲームプレイ中のUIを構築していきましょう。
+`playing/mod.rs` 内に、UI要素を識別するための各コンポーネントと、ゲーム内の進行状態を管理する `InGameState` を定義します。
 
-`InGameState`というステートも作ることでゲームが動いているか止まっているかを管理します。
-
-`setup_ui`関数でUI全体がどういう構成かを書いてバンドルとして返します。(ここでhp::HpUIというまだ作ってないコンポーネントが出てくるので`playing/hp.rs`で定義だけしといてください。)
+また、UIのレイアウト構造を定義する `setup_ui` 関数を作成します。ここで `hp::HpUI` というコンポーネントを使用しますが、これは後ほど `playing/hp.rs` で実装するため、現時点では定義のみ済ませておいてください。
 ```rust
 #[derive(Component)]
 struct UI;
@@ -176,7 +157,8 @@ fn setup_ui(asset_server: &AssetServer) -> impl Bundle {
 }
 ```
 
-では次に現在のスコアと過去のスコアのリストのリソースを定義します(`playing/mod.rs`)。リソースとはアプリ全体に一つだけ存在し、どのシステムからでもアクセスできるシングルトン的なデータストレージです。
+次に、ゲームの進行情報を保持するための「リソース（Resource）」を定義します。
+リソースとは、アプリケーション全体で共有されるシングルトンなデータストレージであり、どのシステムからでも容易にアクセス・変更ができる Bevy の重要な機能です。
 
 ```rust
 // スコアの構造を定義
@@ -220,7 +202,7 @@ fn push_score_list(mut score_list: ResMut<ScoreList>, current_score: Res<Current
 }
 ```
 
-時間を管理するためのストップウォッチのリソースを定義します(`playing/mod.rs`)。
+また、ゲーム経過時間を管理するためのストップウォッチ機能もリソースとして定義しておきましょう。
 
 ```rust
 #[derive(Resource, Default)]
@@ -265,7 +247,7 @@ fn start_stopwatch_res(mut stopwatch: ResMut<StopWatch>) {
 }
 ```
 
-`TimeUI`や`KillUI`を更新するシステムと一時停止ボタンと再開ボタンを動作させるシステムを作ります(`playing/mod.rs`)。
+定義したリソースを画面上に表示するためのUI更新システムと、一時停止・再開ボタンのインタラクション処理を実装します。
 
 ```rust
 fn update_time_ui(stopwatch: Res<StopWatch>, mut time_ui_query: Query<&mut Text, With<TimeUI>>) {
@@ -330,7 +312,7 @@ fn update_pause_button(
     }
 }
 ```
-また、時間制限を超えたらリザルト画面に行くシステムも作ります。
+最後に、制限時間を超過した際に自動的にリザルト画面へ遷移する判定システムを作成します。
 ```rust
 const TIME_LIMIT: f32 = 100.0;
 fn check_time_limit(
@@ -345,12 +327,13 @@ fn check_time_limit(
     }
 }
 ```
-次は背景を用意します。適当な画像を用意して`src/img/invader_background.png`にでもおいておきます。`main.rs`につぎのを追加します。
+背景用の画像（例：`src/img/invader_background.png`）もアセットとして埋め込んでおきましょう。
+
 ```rust
 bevy::asset::embedded_asset!(app, "img/invader_background.png");
 ```
 
-Playing画面の初期配置をするシステムを作ります。
+これらすべての要素を初期化・配置するための、`Playing` 画面専用のセットアップシステムを定義します。
 ```rust
 fn setup_playing(
     mut commands: Commands,
@@ -388,7 +371,7 @@ fn setup_playing(
     ));
 }
 ```
-ではステート、リソース、システムを`app`に追加していきます。
+最後に、これまでに定義したステート、リソース、および各システムを `PlayingPlugin` に集約し、App に登録します。
 ```rust
 impl Plugin for PlayingPlugin {
     fn build(&self, app: &mut App) {

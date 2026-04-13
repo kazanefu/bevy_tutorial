@@ -1,13 +1,17 @@
 # ECSとは
 
-ECSはEntity Component Systemの略で、UnityではDOTS(Data-Oriented Technology Stack)とも呼ばれることがあります。
+ECSは「Entity Component System」の略称で、データ指向の設計手法です。Unityでは「DOTS (Data-Oriented Technology Stack)」の一部として知られています。
 
-- Entity: オブジェクト的なもののID
-- Component: 要素、属性、データ
-- System: 処理、ロジック
+- **Entity**: オブジェクト（個体）を識別するためのIDです。自身はデータや機能を持ちません。
+- **Component**: 属性や状態を保持する「データ」のみの構造体です。
+- **System**: コンポーネントの状態を監視し、更新を行う「ロジック（処理）」です。
 
-EntityはUnityのOOPでいうGameObjectのようなものです。Entity自体は何も持っていません。IDのようなものです。
-ComponentはUnityのOOPでいうComponentとあまり違いはありませんが、OOPのComponentは動作も持ちますが、ECSのComponentは構造体でデータのみを持ちます。また、付け替えが容易です。
-SystemはUnityでいうScript内のメソッドのようなものです。Systemは処理を持ち、Componentを操作します。
+### 従来のOOP（Unity等）との比較
 
-ECSの利点は、データがメモリ上に連続して配置されるため、キャッシュ効率が良く、高速な処理が可能です。また、データと処理が分離されているため、再利用性が高く、保守性の高いコードを書くことができます。
+1. **Entity**: UnityのOOPにおける `GameObject` に近い概念ですが、Entity自体は空のコンテナ（ID）に過ぎません。
+2. **Component**: UnityのComponentと概念は似ていますが、ECSのComponentはデータのみを持ち、振る舞い（メソッド）を持たないことが大きな特徴です。これにより、実行時の付け替えが非常に高速かつ容易になります。
+3. **System**: Unityにおけるスクリプト内の更新ロジックに相当します。特定のコンポーネントを持つEntityを抽出し、一括で処理を行います。
+
+### ECSの利点
+
+ECSを採用することで、データがメモリ上に連続して配置されるようになります。これによりCPUのキャッシュ効率が極めて高くなり、大量のオブジェクトを高速に処理することが可能です。また、データと処理が明確に分離されるため、コードの再利用性や保守性が向上するというメリットもあります。

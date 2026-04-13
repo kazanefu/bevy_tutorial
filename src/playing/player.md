@@ -1,8 +1,8 @@
 # プレイヤー
 
-プレイヤーが操作するものを作っていきます。
+プレイヤーが操作するキャラクターを作成します。
 
-まず、`playing/utils.rs`に`Character`、`HP`と`Control`というコンポーネントを定義します。`Control`で速度を計算&保持して、それに基づいて`Transform`を更新します。できれば既存のライブラリを使いたかったのですがこれを書いてた当時はBevyのバージョンが上がったばかりでrapierという物理エンジンのライブラリが追いついていなかったので簡単なものを自分で作ることにしました。
+はじめに、`playing/utils.rs`で`Character`、`HP`、および`Control`というコンポーネントを定義します。`Control`は速度の計算と保持を行い、それに基づいて`Transform`を更新するために使用します。本来は既存の物理エンジンライブラリを活用したいところですが、本記事の執筆時点ではBevyのメジャーアップデート直後で、代表的な物理エンジンであるRapierが最新バージョンに対応していませんでした。そのため、今回は簡易的な物理挙動を自作することにします。
 
 ```rust
 use bevy::{math::NormedVectorSpace, prelude::*};
@@ -64,9 +64,9 @@ fn update_velocity(query: Query<(&mut Control, &mut Transform)>, time: Res<Time>
     }
 }
 ```
-`UtilPlugin`を`playing/mod.rs`のappに追加します。
+作成した`UtilPlugin`を`playing/mod.rs`の`App`に追加します。
 
-`playing/player.rs`を編集していきます。まずは定数を定義していきます。
+次に、`playing/player.rs`を編集します。まずは必要な定数を定義しましょう。
 ```rust
 const PLAYER_FORCE: f32 = 3.0;
 const PLAYER_SPEED_LIMIT: f32 = 10.0;
@@ -79,7 +79,7 @@ const PLAYER_START_Z: f32 = -8.0;
 ```rust
 use bevy::prelude::*;
 
-// superは一つ上の階層を指す。つまりここでは`playing/`。(正確には`playing/.mod.rs`)
+// superは親モジュール（ここでは`playing/mod.rs`）を指します。
 use super::bullet;
 use super::utils::*;
 
@@ -111,7 +111,7 @@ fn spawn_player(
     ));
 }
 ```
-次に入力を受け取ってPlayerを動かすシステムを作ります。
+続いて、プレイヤーの入力を受け取ってキャラクターを移動させるシステムを作成します。
 ```rust
 fn move_player(mut query: Query<&mut Control, With<Player>>, keyboard: Res<ButtonInput<KeyCode>>) {
     let mut control = match query.single_mut() {
@@ -138,7 +138,7 @@ fn move_player(mut query: Query<&mut Control, With<Player>>, keyboard: Res<Butto
 }
 ```
 
-これらのシステムを追加したプラグインを作ります。
+定義したシステムをまとめたプラグインを作成します。
 ```rust
 pub struct PlayerPlugin;
 
@@ -155,6 +155,6 @@ impl Plugin for PlayerPlugin {
     }
 }
 ```
-`playing/mod.rs`の方にこのプラグインを追加するのを忘れないでください。
+`playing/mod.rs`でこの`PlayerPlugin`を追加するのを忘れないようにしてください。
 
 これでプレイヤーを動かせるようになりました。

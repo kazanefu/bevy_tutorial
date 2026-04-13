@@ -1,18 +1,18 @@
 # Stateの追加
 
-`state.rs`を作成し、以下のように書きます
+ゲーム内の画面遷移（タイトル画面、プレイ中、結果表示など）を管理するために、`src/state.rs` を作成して以下の通り記述します。
 
 ```rust
 use bevy::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum GameState {
-    /// Initial screen.
+    /// タイトル画面
     #[default]
     Home,
-    /// Playing screen.
+    /// ゲームプレイ中
     Playing,
-    /// GameResult screen.
+    /// 結果表示画面
     Result,
 }
 
@@ -20,6 +20,7 @@ pub struct GameStatePlugin;
 
 impl Plugin for GameStatePlugin {
     fn build(&self, app: &mut App) {
+        // AppにGameStateを登録
         app.init_state::<GameState>();
     }
 }

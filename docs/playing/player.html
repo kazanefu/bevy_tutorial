@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "../searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1b60c374.js"></script>
@@ -175,8 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="プレイヤー"><a class="header" href="#プレイヤー">プレイヤー</a></h1>
-<p>プレイヤーが操作するものを作っていきます。</p>
-<p>まず、<code>playing/utils.rs</code>に<code>Character</code>、<code>HP</code>と<code>Control</code>というコンポーネントを定義します。<code>Control</code>で速度を計算&amp;保持して、それに基づいて<code>Transform</code>を更新します。できれば既存のライブラリを使いたかったのですがこれを書いてた当時はBevyのバージョンが上がったばかりでrapierという物理エンジンのライブラリが追いついていなかったので簡単なものを自分で作ることにしました。</p>
+<p>プレイヤーが操作するキャラクターを作成します。</p>
+<p>はじめに、<code>playing/utils.rs</code>で<code>Character</code>、<code>HP</code>、および<code>Control</code>というコンポーネントを定義します。<code>Control</code>は速度の計算と保持を行い、それに基づいて<code>Transform</code>を更新するために使用します。本来は既存の物理エンジンライブラリを活用したいところですが、本記事の執筆時点ではBevyのメジャーアップデート直後で、代表的な物理エンジンであるRapierが最新バージョンに対応していませんでした。そのため、今回は簡易的な物理挙動を自作することにします。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::{math::NormedVectorSpace, prelude::*};
@@ -238,8 +238,8 @@ fn update_velocity(query: Query&lt;(&amp;mut Control, &amp;mut Transform)&gt;, t
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>UtilPlugin</code>を<code>playing/mod.rs</code>のappに追加します。</p>
-<p><code>playing/player.rs</code>を編集していきます。まずは定数を定義していきます。</p>
+<p>作成した<code>UtilPlugin</code>を<code>playing/mod.rs</code>の<code>App</code>に追加します。</p>
+<p>次に、<code>playing/player.rs</code>を編集します。まずは必要な定数を定義しましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const PLAYER_FORCE: f32 = 3.0;
@@ -254,7 +254,7 @@ const PLAYER_START_Z: f32 = -8.0;
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
 
-// superは一つ上の階層を指す。つまりここでは`playing/`。(正確には`playing/.mod.rs`)
+// superは親モジュール（ここでは`playing/mod.rs`）を指します。
 use super::bullet;
 use super::utils::*;
 
@@ -286,7 +286,7 @@ fn spawn_player(
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>次に入力を受け取ってPlayerを動かすシステムを作ります。</p>
+<p>続いて、プレイヤーの入力を受け取ってキャラクターを移動させるシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn move_player(mut query: Query&lt;&amp;mut Control, With&lt;Player&gt;&gt;, keyboard: Res&lt;ButtonInput&lt;KeyCode&gt;&gt;) {
@@ -313,7 +313,7 @@ fn spawn_player(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムを追加したプラグインを作ります。</p>
+<p>定義したシステムをまとめたプラグインを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PlayerPlugin;
@@ -331,7 +331,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>playing/mod.rs</code>の方にこのプラグインを追加するのを忘れないでください。</p>
+<p><code>playing/mod.rs</code>でこの<code>PlayerPlugin</code>を追加するのを忘れないようにしてください。</p>
 <p>これでプレイヤーを動かせるようになりました。</p>
 
                     </main>

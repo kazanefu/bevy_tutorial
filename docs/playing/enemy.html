@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "../searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1b60c374.js"></script>
@@ -174,8 +174,8 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="敵"><a class="header" href="#敵">敵</a></h1>
-<p><code>Enemy</code>コンポーネントと定数を作ります。<code>playing/enemy.rs</code></p>
+                        <h1 id="敵キャラクターの実装"><a class="header" href="#敵キャラクターの実装">敵キャラクターの実装</a></h1>
+<p><code>playing/enemy.rs</code> を作成し、<code>Enemy</code> コンポーネントと関連する定数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
@@ -192,7 +192,7 @@ const ENEMY_SPAWN_Z: f32 = 10.0;
 
 const ENEMY_SPEED_LIMIT: f32 = 2.0;
 <span class="boring">}</span></code></pre>
-<p>敵をスポーンする関数を作ります。</p>
+<p>敵を生成するための <code>spawn_enemy</code> 関数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn spawn_enemy(
@@ -231,10 +231,11 @@ const ENEMY_SPEED_LIMIT: f32 = 2.0;
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>また、ランダムな位置にスポーンする関数と初期配置をするシステムを作ります。ランダムな位置へのスポーンは敵が倒されたり範囲外に出てリスポーンするときに使います。乱数を使いたいので<code>rand</code>というライブラリクレートを使います。</p>
+<p>また、ランダムな位置へのスポーン関数と、ゲーム開始時の初期配置を行うシステムを定義します。
+ランダムスポーンは、敵が撃破された際や画面外へ消えた際のリスポーンに使用します。</p>
+<p>乱数生成を行うために、<code>rand</code> クレートを追加しましょう。<code>Cargo.toml</code> の <code>[dependencies]</code> に以下を追記します。</p>
 <pre><code class="language-toml">rand = "0.10.1"
 </code></pre>
-<p>をCargo.tomlに追加</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use rand::prelude::*;
@@ -276,7 +277,7 @@ fn setup_enemies(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>範囲外に出た敵をデスポーンして新たな敵をスポーンします。</p>
+<p>画面外（移動範囲外）に出た敵を削除し、代わりに新しい敵をランダムな位置にスポーンさせます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const ENEMY_X_LIMIT: f32 = 19.0;
@@ -305,7 +306,7 @@ fn delete_out_of_range_enemy(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>また、敵にも弾丸を発射するシステムを作ります。</p>
+<p>敵が一定間隔で一定確率で弾丸を発射するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn enemy_shoot(
@@ -334,7 +335,7 @@ fn delete_out_of_range_enemy(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムをこれまで同様にプラグインに追加します。</p>
+<p>作成したシステムを <code>EnemyPlugin</code> にまとめ、アプリケーションに登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use super::utils::*;

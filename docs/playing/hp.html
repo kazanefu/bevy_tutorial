@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "../searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1b60c374.js"></script>
@@ -174,9 +174,9 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="hp"><a class="header" href="#hp">HP</a></h1>
-<p>HpUIの更新とHPが0になったときのシステムを書きます。</p>
-<p>HpUIの更新とプレイヤーのHPが0になったときの処理をするシステムを作る。</p>
+                        <h1 id="hpと死亡処理の実装"><a class="header" href="#hpと死亡処理の実装">HPと死亡処理の実装</a></h1>
+<p>HPを表示するUIの更新と、HPが0になった際の判定を行うシステムを実装します。</p>
+<p>まずは、プレイヤーのHP UIの更新と、HPが0になった時のリザルト画面への遷移を処理するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use crate::playing::CurrentScore;
@@ -214,7 +214,7 @@ pub fn update_player_hp(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>敵のHPが0になったときに敵をデスポーンしKillをカウントアップするシステムを作る。</p>
+<p>次に、敵のHPを監視し、0になった場合にデスポーン（消去）してスコアを加算するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn handle_enemy_death(
@@ -238,7 +238,7 @@ pub fn update_player_hp(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムを<code>HpPlugin</code>に追加する。</p>
+<p>これらのシステムを <code>HpPlugin</code> に登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use crate::state;
@@ -256,7 +256,7 @@ impl Plugin for HpPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>また、このプラグインも<code>playing/mod.rs</code>の方に追加するのを忘れないように。</p>
+<p>他のプラグインと同様に、<code>playing/mod.rs</code> にこの <code>HpPlugin</code> を追加するのを忘れないようにしてください。</p>
 
                     </main>
 

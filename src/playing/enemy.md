@@ -1,6 +1,6 @@
-# 敵
+# 敵キャラクターの実装
 
-`Enemy`コンポーネントと定数を作ります。`playing/enemy.rs`
+`playing/enemy.rs` を作成し、`Enemy` コンポーネントと関連する定数を定義します。
 ```rust
 #[derive(Component)]
 pub struct Enemy;
@@ -16,7 +16,7 @@ const ENEMY_SPAWN_Z: f32 = 10.0;
 
 const ENEMY_SPEED_LIMIT: f32 = 2.0;
 ```
-敵をスポーンする関数を作ります。
+敵を生成するための `spawn_enemy` 関数を定義します。
 ```rust
 fn spawn_enemy(
     commands: &mut Commands,
@@ -54,11 +54,14 @@ fn spawn_enemy(
     ));
 }
 ```
-また、ランダムな位置にスポーンする関数と初期配置をするシステムを作ります。ランダムな位置へのスポーンは敵が倒されたり範囲外に出てリスポーンするときに使います。乱数を使いたいので`rand`というライブラリクレートを使います。
+また、ランダムな位置へのスポーン関数と、ゲーム開始時の初期配置を行うシステムを定義します。
+ランダムスポーンは、敵が撃破された際や画面外へ消えた際のリスポーンに使用します。
+
+乱数生成を行うために、`rand` クレートを追加しましょう。`Cargo.toml` の `[dependencies]` に以下を追記します。
+
 ```toml
 rand = "0.10.1"
 ```
-をCargo.tomlに追加
 
 ```rust
 use rand::prelude::*;
@@ -101,7 +104,7 @@ fn setup_enemies(
 }
 ```
 
-範囲外に出た敵をデスポーンして新たな敵をスポーンします。
+画面外（移動範囲外）に出た敵を削除し、代わりに新しい敵をランダムな位置にスポーンさせます。
 ```rust
 const ENEMY_X_LIMIT: f32 = 19.0;
 const ENEMY_NEG_X_LIMIT: f32 = -19.0;
@@ -130,7 +133,7 @@ fn delete_out_of_range_enemy(
 }
 ```
 
-また、敵にも弾丸を発射するシステムを作ります。
+敵が一定間隔で一定確率で弾丸を発射するシステムを作成します。
 ```rust
 fn enemy_shoot(
     mut commands: Commands,
@@ -159,7 +162,7 @@ fn enemy_shoot(
 }
 ```
 
-これらのシステムをこれまで同様にプラグインに追加します。
+作成したシステムを `EnemyPlugin` にまとめ、アプリケーションに登録します。
 ```rust
 use super::utils::*;
 use bevy::prelude::*;

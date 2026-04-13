@@ -1,8 +1,8 @@
-# Result画面の作成
+# Result画面（結果表示）の作成
 
-リザルト画面では、今回のリザルト、今回のを含めたスコアの履歴を順位の順で表示、リトライボタン(Home画面に戻る)で構成されます。まずは`result/mod.rs`を作ってください
+リザルト画面は、今回のスコア表示、これまでのスコア履歴（ランキング形式）、およびタイトル画面へ戻るためのリトライボタンで構成されます。まずは、`src/result/mod.rs` を作成しましょう。
 
-リザルト画面の初期化をするシステムを作ります。
+リザルト画面のUIを初期化するシステムを実装します。
 ```rust
 use crate::playing::{Score, ScoreList};
 use crate::state;
@@ -107,7 +107,7 @@ fn setup_result_screen(
 }
 ```
 
-リトライボタンの動作のシステムを作ります。
+リトライボタンが押された際にタイトル画面（Home）へ戻るためのシステムを作成します。
 ```rust
 type RetryButtonInputs = (Changed<Interaction>, With<RetryButton>);
 fn update_retry_button(
@@ -131,7 +131,7 @@ fn update_retry_button(
 }
 ```
 
-これらのシステムをプラグインを作ってそこに入れます。
+これらのシステムをまとめて管理する `ResultPlugin` を作成します。
 ```rust
 pub struct ResultPlugin;
 
@@ -145,7 +145,7 @@ impl Plugin for ResultPlugin {
     }
 }
 ```
-このプラグインは`main.rs`にあるappに追加してください。最終的な`main.rs`は次のようになります。
+最後に、この `ResultPlugin` を `main.rs` に登録します。これですべての画面の実装が揃いました！ 最終的な `main.rs` の内容は以下の通りです。
 ```rust
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::prelude::*;

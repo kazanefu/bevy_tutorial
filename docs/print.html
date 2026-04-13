@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -176,7 +176,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="環境構築"><a class="header" href="#環境構築">環境構築</a></h1>
-<p>検証済み環境であればほぼ確実にできると思いますが、多分他の環境でも似たような感じでできると思います。</p>
+<p>以下の手順に従って、開発環境を構築します。検証済み環境以外でも、同様の手順で構築可能です。</p>
 <p><strong>検証済み環境</strong></p>
 <ul>
 <li>Windows 11</li>
@@ -184,26 +184,26 @@
 <li>Bevy 0.18.1</li>
 </ul>
 <h2 id="rustのインストール"><a class="header" href="#rustのインストール">Rustのインストール</a></h2>
-<p><a href="https://www.rust-lang.org/tools/install">https://www.rust-lang.org/tools/install</a>に行き、手順に従ってインストールします。この辺のは公式に日本語のわかりやすい説明があるので<a href="https://doc.rust-jp.rs/book-ja/ch01-01-installation.html#windows%E3%81%A7rustup%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%99%E3%82%8B">The Rust Programming Language 日本語版</a>を参考にしてください。</p>
+<p><a href="https://www.rust-lang.org/tools/install">公式サイト</a>の手順に従ってインストールしてください。インストールの詳細については、<a href="https://doc.rust-jp.rs/book-ja/ch01-01-installation.html#windows%E3%81%A7rustup%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%99%E3%82%8B">The Rust Programming Language 日本語版</a>が参考になります。</p>
 <h2 id="rust-analyzerのインストール"><a class="header" href="#rust-analyzerのインストール">Rust Analyzerのインストール</a></h2>
-<p>VSCodeを使っている場合は、拡張機能からRust Analyzerをインストールします。これがあるだけでコードの補完やエラーチェックが効くので入れておくといいです。</p>
+<p>VSCodeを使用している場合は、拡張機能から「Rust Analyzer」をインストールしてください。コード補完やリアルタイムのエラーチェックが可能になるため、導入を強く推奨します。</p>
 <h2 id="bevyのインストール"><a class="header" href="#bevyのインストール">Bevyのインストール</a></h2>
-<p>あとでCargo.tomlにbevyを追加するだけでいいので、ここでは割愛します。</p>
-<h2 id="プロジェクトの作成"><a class="header" href="#プロジェクトの作成">プロジェクトの作成</a></h2>
+<p>後ほど <code>Cargo.toml</code> に Bevy を追記するため、この段階での個別のインストール作業は不要です。</p>
+<p>ターミナル（またはコマンドプロンプト）で以下のコマンドを実行し、プロジェクトを作成します。</p>
 <pre><code class="language-bash">cargo new invader_tutorial
 cd invader_tutorial
 </code></pre>
-<p>このフォルダを適当なテキストエディタで開きます。VSCodeがおすすめですが、お好きなもので大丈夫です。</p>
+<p>作成されたフォルダを、VSCodeなどの任意のテキストエディタで開いてください。</p>
 <h2 id="bevyの追加"><a class="header" href="#bevyの追加">Bevyの追加</a></h2>
-<p>Cargo.tomlに以下を追加します。</p>
+<p><code>Cargo.toml</code> に以下を追記します。</p>
 <pre><code class="language-toml">[dependencies]
 bevy = "0.18.1"
 </code></pre>
-<p>.cargo/config.tomlに以下を追加します。</p>
+<p>次に、<code>.cargo/config.toml</code> （フォルダがない場合は作成してください）に以下を追記します。</p>
 <pre><code class="language-toml">[target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
 </code></pre>
-<p>まだCargo.tomlに以下を追加します</p>
+<p>また、<code>Cargo.toml</code> に以下のプロファイル設定を追加します。</p>
 <pre><code class="language-toml">[profile.dev]
 opt-level = 1
 [profile.dev.package."*"]
@@ -211,50 +211,66 @@ opt-level = 3
 [features]
 dynamic_linking = ["bevy/dynamic_linking"]
 </code></pre>
-<p>これはビルドを速くするための設定です。</p>
-<p>環境構築はこれで完了です。</p>
+<p>これは、ビルド速度を向上させるための設定です。</p>
+<p>以上で環境構築は完了です。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ecsとは"><a class="header" href="#ecsとは">ECSとは</a></h1>
-<p>ECSはEntity Component Systemの略で、UnityではDOTS(Data-Oriented Technology Stack)とも呼ばれることがあります。</p>
+<p>ECSは「Entity Component System」の略称で、データ指向の設計手法です。Unityでは「DOTS (Data-Oriented Technology Stack)」の一部として知られています。</p>
 <ul>
-<li>Entity: オブジェクト的なもののID</li>
-<li>Component: 要素、属性、データ</li>
-<li>System: 処理、ロジック</li>
+<li><strong>Entity</strong>: オブジェクト（個体）を識別するためのIDです。自身はデータや機能を持ちません。</li>
+<li><strong>Component</strong>: 属性や状態を保持する「データ」のみの構造体です。</li>
+<li><strong>System</strong>: コンポーネントの状態を監視し、更新を行う「ロジック（処理）」です。</li>
 </ul>
-<p>EntityはUnityのOOPでいうGameObjectのようなものです。Entity自体は何も持っていません。IDのようなものです。
-ComponentはUnityのOOPでいうComponentとあまり違いはありませんが、OOPのComponentは動作も持ちますが、ECSのComponentは構造体でデータのみを持ちます。また、付け替えが容易です。
-SystemはUnityでいうScript内のメソッドのようなものです。Systemは処理を持ち、Componentを操作します。</p>
-<p>ECSの利点は、データがメモリ上に連続して配置されるため、キャッシュ効率が良く、高速な処理が可能です。また、データと処理が分離されているため、再利用性が高く、保守性の高いコードを書くことができます。</p>
+<h3 id="従来のoopunity等との比較"><a class="header" href="#従来のoopunity等との比較">従来のOOP（Unity等）との比較</a></h3>
+<ol>
+<li><strong>Entity</strong>: UnityのOOPにおける <code>GameObject</code> に近い概念ですが、Entity自体は空のコンテナ（ID）に過ぎません。</li>
+<li><strong>Component</strong>: UnityのComponentと概念は似ていますが、ECSのComponentはデータのみを持ち、振る舞い（メソッド）を持たないことが大きな特徴です。これにより、実行時の付け替えが非常に高速かつ容易になります。</li>
+<li><strong>System</strong>: Unityにおけるスクリプト内の更新ロジックに相当します。特定のコンポーネントを持つEntityを抽出し、一括で処理を行います。</li>
+</ol>
+<h3 id="ecsの利点"><a class="header" href="#ecsの利点">ECSの利点</a></h3>
+<p>ECSを採用することで、データがメモリ上に連続して配置されるようになります。これによりCPUのキャッシュ効率が極めて高くなり、大量のオブジェクトを高速に処理することが可能です。また、データと処理が明確に分離されるため、コードの再利用性や保守性が向上するというメリットもあります。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="appの作成"><a class="header" href="#appの作成">Appの作成</a></h1>
-<p>main.rsを以下のように書き換えます。</p>
+<p><code>main.rs</code> を以下のように書き換えます。</p>
 <pre class="playground"><code class="language-rust">#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::prelude::*;
 
 fn main() {
     App::new().add_plugins(DefaultPlugins).run();
 }</code></pre>
-<p>一行目はリリースビルドの時にコンソールウィンドウを表示しないための設定です。</p>
-<p>二行目は bevyクレートのネームスペースを使うためのものです。</p>
-<p><code>main</code>関数はプログラムのエントリーポイントです。ここでは<code>App::new()</code>でAppのインスタンスを作成し、<code>run()</code>で実行しています。</p>
-<p><code>add_plugins(DefaultPlugins)</code>は、ウィンドウの表示やキーボード入力、マウス入力など、ゲームに必要な基本的な機能をまとめて追加するためのものです。</p>
-<p>これで<code>cargo run</code>を実行すると、ウィンドウが表示されます。(<code>cargo run</code>は<code>cargo build</code>してから<code>target/debug/invader_tutorial.exe</code>を実行するのと同じです。)</p>
+<p>各行の役割を解説します。</p>
+<ul>
+<li>
+<p><strong>1行目</strong>: リリースビルド時にコンソールウィンドウを表示させないための設定です。</p>
+</li>
+<li>
+<p><strong>2行目</strong>: Bevyで頻繁に使用する機能をまとめた「プレリュード（prelude）」をインポートしています。</p>
+</li>
+<li>
+<p><strong>main関数</strong>: プログラムのエントリーポイントです。<code>App::new()</code> でアプリケーションを初期化し、<code>run()</code> でゲームループを開始します。</p>
+</li>
+<li>
+<p><strong>add_plugins(DefaultPlugins)</strong>: ウィンドウ表示、キー入力、アセット管理など、ゲームに必要な基本機能をまとめて追加します。</p>
+</li>
+</ul>
+<p>この状態で <code>cargo run</code> を実行すると、空のウィンドウが表示されます。
+（※<code>cargo run</code> は、ビルドを行ってから生成されたバイナリを実行するコマンドです。）</p>
 <p><img src="img/app.png" alt="app"></p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stateの追加"><a class="header" href="#stateの追加">Stateの追加</a></h1>
-<p><code>state.rs</code>を作成し、以下のように書きます</p>
+<p>ゲーム内の画面遷移（タイトル画面、プレイ中、結果表示など）を管理するために、<code>src/state.rs</code> を作成して以下の通り記述します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum GameState {
-    /// Initial screen.
+    /// タイトル画面
     #[default]
     Home,
-    /// Playing screen.
+    /// ゲームプレイ中
     Playing,
-    /// GameResult screen.
+    /// 結果表示画面
     Result,
 }
 
@@ -262,6 +278,7 @@ pub struct GameStatePlugin;
 
 impl Plugin for GameStatePlugin {
     fn build(&amp;self, app: &amp;mut App) {
+        // AppにGameStateを登録
         app.init_state::&lt;GameState&gt;();
     }
 }
@@ -288,20 +305,23 @@ impl Plugin for GameStatePlugin {
 <span class="boring">}</span></code></pre>
 <p>これでGameStateが使えるようになりました。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="home画面を作る"><a class="header" href="#home画面を作る">Home画面を作る</a></h1>
-<p>Home画面は、ゲームが始まったときに開かれる画面で、<code>Start</code>ボタンが配置されており、押すと<code>Playing</code>画面に遷移します。</p>
-<p>まずUIで使うテキストのためのフォントを準備してください。ここでは<code>fonts/NotoSansJP-Bold.ttf</code>を<code>src/</code>の直下に置きます。次に<code>main.rs</code>の<code>main</code>関数の中を以下のように変更します。</p>
+<h1 id="home画面タイトル画面の作成"><a class="header" href="#home画面タイトル画面の作成">Home画面（タイトル画面）の作成</a></h1>
+<p>Home画面は、アプリ起動時に最初に表示される画面です。中央に配置された <code>Start</code> ボタンをクリックすることで、ゲーム本編（Playing 画面）へと遷移します。</p>
+<p>まずは、UIで使用するフォントの準備が必要です。ここでは、<code>fonts/NotoSansJP-Bold.ttf</code> というファイルを <code>src/</code> 直下に配置して使用します。次に、<code>main.rs</code> の <code>main</code> 関数を以下のように書き換えて、フォントアセットをアプリに埋め込みます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut app = App::new();
-app.add_plugins(DefaultPlugins); // DefaultPluginsを先に足す
-bevy::asset::embedded_asset!(app, "fonts/NotoSansJP-Bold.ttf"); // フォントをassetとして埋め込む
+app.add_plugins(DefaultPlugins); 
+
+// フォントファイルをバイナリに埋め込み、アセットとして利用可能にする
+bevy::asset::embedded_asset!(app, "fonts/NotoSansJP-Bold.ttf"); 
+
 app.add_plugins(state::GameStatePlugin)
     .add_plugins(home::HomePlugin)
     .run();
 <span class="boring">}</span></code></pre>
-<p>これでフォントがassetとして埋め込まれました。</p>
-<p>次に<code>home/mod.rs</code>を作成します。また、<code>main.rs</code>に<code>mod home;</code>を追加します。</p>
+<p><code>bevy::asset::embedded_asset!</code> マクロを使用することで、外部ファイルに依存せず実行ファイル単体でフォントを表示できるようになります。</p>
+<p>続いて、<code>src/home/mod.rs</code> を作成します。同時に、<code>main.rs</code> でこのモジュールを扱えるよう <code>mod home;</code> を追記してください。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// src/home/mod.rs
@@ -312,7 +332,7 @@ pub struct HomePlugin;
 
 impl Plugin for HomePlugin {
     fn build(&amp;self, app: &amp;mut App) {
-        
+        // ここにシステムを登録していきます
     }
 }
 <span class="boring">}</span></code></pre>
@@ -322,13 +342,13 @@ impl Plugin for HomePlugin {
 </span>app.add_plugins(home::HomePlugin);
 <span class="boring">}</span></code></pre>
 <p>では、Home画面のUI(Startボタン)を実装していきます。</p>
-<p>まず<code>StartButton</code>という名前のコンポーネントを作ります。</p>
+<p>まずは、UI要素を識別するための <code>StartButton</code> コンポーネントと、ボタンの見た目を定義する関数を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
 pub struct StartButton;
 <span class="boring">}</span></code></pre>
-<p>また、UIのバンドルを作るための関数を作ります。</p>
+<p>UIの構成（バンドル）を定義する関数を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn start_button_bundle(assets_server: Res&lt;AssetServer&gt;) -&gt; impl Bundle {
@@ -370,7 +390,7 @@ pub struct StartButton;
     )
 }
 <span class="boring">}</span></code></pre>
-<p>これをHome画面に来たときにspawnするようにします。</p>
+<p>このUIレイアウトを、Home画面に遷移したタイミングで生成（スポーン）するように設定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn setup_home_screen(mut commands: Commands, assets_server: Res&lt;AssetServer&gt;) {
@@ -393,7 +413,7 @@ pub struct StartButton;
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>StartButton</code>が表示されるようになりましたが、押しても何も起こりません。そこで、<code>StartButton</code>が押されたときに<code>Playing</code>画面に遷移するようにします。</p>
+<p>これでStartボタンが表示されるようになりましたが、まだクリックしても反応がありません。そこで、ボタンが押されたことを検知して <code>Playing</code> 状態へ遷移するシステムを実装します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>type StartButtonInputs = (Changed&lt;Interaction&gt;, With&lt;StartButton&gt;);
@@ -449,27 +469,10 @@ mod home;
 mod playing;
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="playing画面全体の流れとui"><a class="header" href="#playing画面全体の流れとui">Playing画面全体の流れとUI</a></h1>
-<p>ここではPlugin、一時停止ボタン、再開ボタン、スコアテキスト、リザルト画面への遷移を実装します。</p>
-<p>まず、<code>playing/mod.rs</code>に<code>PlayingPlugin</code>を作成します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use bevy::prelude::*;
-
-pub struct PlayingPlugin;
-
-impl Plugin for PlayingPlugin {
-    fn build(&amp;self, app: &amp;mut App) {
-        
-    }
-}
-<span class="boring">}</span></code></pre>
-<p>次に、<code>PlayingPlugin</code>を<code>main.rs</code>の<code>app</code>に追加します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>app.add_plugins(playing::PlayingPlugin);
-<span class="boring">}</span></code></pre>
-<p>また、<code>playing/mod.rs</code>に<code>playing/</code>内にあるモジュールを書き込みます</p>
+<h1 id="playing画面全体の流れとuiの実装"><a class="header" href="#playing画面全体の流れとuiの実装">Playing画面全体の流れとUIの実装</a></h1>
+<p>ここでは、メインのゲームループを管理する <code>PlayingPlugin</code> の作成に加え、一時停止・再開ボタン、スコア表記、ゲームプレイ中のステート管理、およびリザルト画面への遷移を実装します。</p>
+<p>まず、<code>playing/mod.rs</code> を作成して <code>PlayingPlugin</code> を用意します。作成したプラグインは、これまでと同様に <code>main.rs</code> の <code>App</code> に登録しておきましょう。</p>
+<p>さらに、<code>playing/</code> フォルダ内にある各サブモジュールを公開し、<code>GameState</code> を利用可能にします。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub mod bullet;
@@ -477,17 +480,13 @@ pub mod enemy;
 pub mod hp;
 pub mod player;
 pub mod utils;
+
+use crate::state;
 <span class="boring">}</span></code></pre>
-<p>また、<code>GameState</code>も使うので<code>use</code>に入れておきます</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use crate::state;
-<span class="boring">}</span></code></pre>
-<p>ここで、<code>crate</code>はルートを指す、つまり<code>main.rs</code>にあるものを指し、<code>main.rs</code>に展開されている<code>state</code>を使うということです。</p>
-<p>ではUIを作っていきます。
-<code>playing/mod.rs</code>内に<code>UI</code>,<code>PauseButton</code>,<code>ResumeButton</code>,<code>TimeUI</code>,<code>KillUI</code>をコンポーネントとして作ります。</p>
-<p><code>InGameState</code>というステートも作ることでゲームが動いているか止まっているかを管理します。</p>
-<p><code>setup_ui</code>関数でUI全体がどういう構成かを書いてバンドルとして返します。(ここでhp::HpUIというまだ作ってないコンポーネントが出てくるので<code>playing/hp.rs</code>で定義だけしといてください。)</p>
+<p>ここで、<code>crate</code> はプロジェクトのルート（<code>src/</code>）を指します。つまり <code>main.rs</code> で定義されている <code>state</code> モジュールを参照しています。</p>
+<p>それでは、ゲームプレイ中のUIを構築していきましょう。
+<code>playing/mod.rs</code> 内に、UI要素を識別するための各コンポーネントと、ゲーム内の進行状態を管理する <code>InGameState</code> を定義します。</p>
+<p>また、UIのレイアウト構造を定義する <code>setup_ui</code> 関数を作成します。ここで <code>hp::HpUI</code> というコンポーネントを使用しますが、これは後ほど <code>playing/hp.rs</code> で実装するため、現時点では定義のみ済ませておいてください。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
@@ -624,7 +623,8 @@ fn setup_ui(asset_server: &amp;AssetServer) -&gt; impl Bundle {
     )
 }
 <span class="boring">}</span></code></pre>
-<p>では次に現在のスコアと過去のスコアのリストのリソースを定義します(<code>playing/mod.rs</code>)。リソースとはアプリ全体に一つだけ存在し、どのシステムからでもアクセスできるシングルトン的なデータストレージです。</p>
+<p>次に、ゲームの進行情報を保持するための「リソース（Resource）」を定義します。
+リソースとは、アプリケーション全体で共有されるシングルトンなデータストレージであり、どのシステムからでも容易にアクセス・変更ができる Bevy の重要な機能です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// スコアの構造を定義
@@ -667,7 +667,7 @@ fn push_score_list(mut score_list: ResMut&lt;ScoreList&gt;, current_score: Res&l
     score_list.0.push(current_score.0);
 }
 <span class="boring">}</span></code></pre>
-<p>時間を管理するためのストップウォッチのリソースを定義します(<code>playing/mod.rs</code>)。</p>
+<p>また、ゲーム経過時間を管理するためのストップウォッチ機能もリソースとして定義しておきましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Resource, Default)]
@@ -711,7 +711,7 @@ fn start_stopwatch_res(mut stopwatch: ResMut&lt;StopWatch&gt;) {
     stopwatch.start();
 }
 <span class="boring">}</span></code></pre>
-<p><code>TimeUI</code>や<code>KillUI</code>を更新するシステムと一時停止ボタンと再開ボタンを動作させるシステムを作ります(<code>playing/mod.rs</code>)。</p>
+<p>定義したリソースを画面上に表示するためのUI更新システムと、一時停止・再開ボタンのインタラクション処理を実装します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn update_time_ui(stopwatch: Res&lt;StopWatch&gt;, mut time_ui_query: Query&lt;&amp;mut Text, With&lt;TimeUI&gt;&gt;) {
@@ -776,7 +776,7 @@ fn update_pause_button(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>また、時間制限を超えたらリザルト画面に行くシステムも作ります。</p>
+<p>最後に、制限時間を超過した際に自動的にリザルト画面へ遷移する判定システムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const TIME_LIMIT: f32 = 100.0;
@@ -792,12 +792,12 @@ fn check_time_limit(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>次は背景を用意します。適当な画像を用意して<code>src/img/invader_background.png</code>にでもおいておきます。<code>main.rs</code>につぎのを追加します。</p>
+<p>背景用の画像（例：<code>src/img/invader_background.png</code>）もアセットとして埋め込んでおきましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>bevy::asset::embedded_asset!(app, "img/invader_background.png");
 <span class="boring">}</span></code></pre>
-<p>Playing画面の初期配置をするシステムを作ります。</p>
+<p>これらすべての要素を初期化・配置するための、<code>Playing</code> 画面専用のセットアップシステムを定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn setup_playing(
@@ -836,7 +836,7 @@ fn check_time_limit(
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>ではステート、リソース、システムを<code>app</code>に追加していきます。</p>
+<p>最後に、これまでに定義したステート、リソース、および各システムを <code>PlayingPlugin</code> に集約し、App に登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl Plugin for PlayingPlugin {
@@ -868,8 +868,8 @@ fn check_time_limit(
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="プレイヤー"><a class="header" href="#プレイヤー">プレイヤー</a></h1>
-<p>プレイヤーが操作するものを作っていきます。</p>
-<p>まず、<code>playing/utils.rs</code>に<code>Character</code>、<code>HP</code>と<code>Control</code>というコンポーネントを定義します。<code>Control</code>で速度を計算&amp;保持して、それに基づいて<code>Transform</code>を更新します。できれば既存のライブラリを使いたかったのですがこれを書いてた当時はBevyのバージョンが上がったばかりでrapierという物理エンジンのライブラリが追いついていなかったので簡単なものを自分で作ることにしました。</p>
+<p>プレイヤーが操作するキャラクターを作成します。</p>
+<p>はじめに、<code>playing/utils.rs</code>で<code>Character</code>、<code>HP</code>、および<code>Control</code>というコンポーネントを定義します。<code>Control</code>は速度の計算と保持を行い、それに基づいて<code>Transform</code>を更新するために使用します。本来は既存の物理エンジンライブラリを活用したいところですが、本記事の執筆時点ではBevyのメジャーアップデート直後で、代表的な物理エンジンであるRapierが最新バージョンに対応していませんでした。そのため、今回は簡易的な物理挙動を自作することにします。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::{math::NormedVectorSpace, prelude::*};
@@ -931,8 +931,8 @@ fn update_velocity(query: Query&lt;(&amp;mut Control, &amp;mut Transform)&gt;, t
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>UtilPlugin</code>を<code>playing/mod.rs</code>のappに追加します。</p>
-<p><code>playing/player.rs</code>を編集していきます。まずは定数を定義していきます。</p>
+<p>作成した<code>UtilPlugin</code>を<code>playing/mod.rs</code>の<code>App</code>に追加します。</p>
+<p>次に、<code>playing/player.rs</code>を編集します。まずは必要な定数を定義しましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const PLAYER_FORCE: f32 = 3.0;
@@ -947,7 +947,7 @@ const PLAYER_START_Z: f32 = -8.0;
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
 
-// superは一つ上の階層を指す。つまりここでは`playing/`。(正確には`playing/.mod.rs`)
+// superは親モジュール（ここでは`playing/mod.rs`）を指します。
 use super::bullet;
 use super::utils::*;
 
@@ -979,7 +979,7 @@ fn spawn_player(
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>次に入力を受け取ってPlayerを動かすシステムを作ります。</p>
+<p>続いて、プレイヤーの入力を受け取ってキャラクターを移動させるシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn move_player(mut query: Query&lt;&amp;mut Control, With&lt;Player&gt;&gt;, keyboard: Res&lt;ButtonInput&lt;KeyCode&gt;&gt;) {
@@ -1006,7 +1006,7 @@ fn spawn_player(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムを追加したプラグインを作ります。</p>
+<p>定義したシステムをまとめたプラグインを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PlayerPlugin;
@@ -1024,11 +1024,11 @@ impl Plugin for PlayerPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>playing/mod.rs</code>の方にこのプラグインを追加するのを忘れないでください。</p>
+<p><code>playing/mod.rs</code>でこの<code>PlayerPlugin</code>を追加するのを忘れないようにしてください。</p>
 <p>これでプレイヤーを動かせるようになりました。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="弾丸"><a class="header" href="#弾丸">弾丸</a></h1>
-<p><code>playing/bullet.rs</code>で<code>Bullet</code>コンポーネントと定数たちを定義していきます。</p>
+<h1 id="弾丸の実装"><a class="header" href="#弾丸の実装">弾丸の実装</a></h1>
+<p><code>playing/bullet.rs</code> を作成し、<code>Bullet</code> コンポーネントと関連する定数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
@@ -1049,7 +1049,7 @@ const ENEMY_BULLET_DAMAGE: f32 = 3.0;
 const BULLET_COLLISION_RADIUS: f32 = 1.0;
 const BULLET_LIFE_TIME: f32 = 0.7;
 <span class="boring">}</span></code></pre>
-<p>弾丸の移動をするシステムを作ります。</p>
+<p>弾丸を移動させるためのシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn move_bullet(query: Query&lt;(&amp;mut Transform, &amp;Bullet)&gt;, time: Res&lt;Time&gt;) {
@@ -1058,7 +1058,7 @@ const BULLET_LIFE_TIME: f32 = 0.7;
     }
 }
 <span class="boring">}</span></code></pre>
-<p>弾丸は一定時間後に消えてほしいので一定時間をはかるコンポーネントを<code>playing/utils.rs</code>に追加します。</p>
+<p>弾丸は発射から一定時間後に消滅させる必要があるため、時間を計測するためのコンポーネントを <code>playing/utils.rs</code> に追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
@@ -1085,7 +1085,7 @@ fn tick_interval(time: Res&lt;Time&gt;, query: Query&lt;&amp;mut Interval&gt;) {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>tick_interval</code>システムをUtilPluginのbuild内でappに追加しておきます。</p>
+<p>作成した <code>tick_interval</code> システムを、<code>UtilPlugin</code> の <code>build</code> メソッド内で App に追加しておきます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct UtilPlugin;
@@ -1102,7 +1102,7 @@ impl Plugin for UtilPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>弾丸をスポーンする関数を作ります(<code>playing/bullet.rs</code>)。</p>
+<p>続いて、<code>playing/bullet.rs</code> に弾丸を生成（スポーン）するための関数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn spawn_bullet(
@@ -1138,7 +1138,7 @@ impl Plugin for UtilPlugin {
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>弾丸の衝突判定をするシステムを作る。</p>
+<p>弾丸とキャラクターの衝突判定を行うシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn bullet_collision(
@@ -1163,7 +1163,7 @@ impl Plugin for UtilPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>タイムアウトした弾丸を消去するシステムを作る。</p>
+<p>生存期間（Interval）が終了した弾丸を自動的に削除するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn remove_time_out_bullet(
@@ -1177,7 +1177,7 @@ impl Plugin for UtilPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>BulletPlugin</code>を作ってそこにシステムを追加します。</p>
+<p><code>BulletPlugin</code> を作成し、これまで定義したシステムを登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct BulletPlugin;
@@ -1194,8 +1194,8 @@ impl Plugin for BulletPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>BulletPlugin</code>を<code>playing/mod.rs</code>の方で追加するのを忘れないでください。</p>
-<p>プレイヤーに弾丸を発射するシステムを追加します。(<code>playing/player.rs</code>)</p>
+<p>作成した <code>BulletPlugin</code> を <code>playing/mod.rs</code> に追加するのを忘れないようにしてください。</p>
+<p>最後に、プレイヤーがスペースキーを押した時に弾丸を発射できるよう、<code>playing/player.rs</code> に発射システムを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn shoot(
@@ -1219,7 +1219,7 @@ impl Plugin for BulletPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><code>PlayerPlugin</code>に追加するのも忘れずに。</p>
+<p>作成した <code>shoot</code> システムを <code>PlayerPlugin</code> にも登録しましょう。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PlayerPlugin;
@@ -1239,8 +1239,8 @@ impl Plugin for PlayerPlugin {
 <span class="boring">}</span></code></pre>
 <p>これで弾丸の発射までできるようになりました。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="敵"><a class="header" href="#敵">敵</a></h1>
-<p><code>Enemy</code>コンポーネントと定数を作ります。<code>playing/enemy.rs</code></p>
+<h1 id="敵キャラクターの実装"><a class="header" href="#敵キャラクターの実装">敵キャラクターの実装</a></h1>
+<p><code>playing/enemy.rs</code> を作成し、<code>Enemy</code> コンポーネントと関連する定数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Component)]
@@ -1257,7 +1257,7 @@ const ENEMY_SPAWN_Z: f32 = 10.0;
 
 const ENEMY_SPEED_LIMIT: f32 = 2.0;
 <span class="boring">}</span></code></pre>
-<p>敵をスポーンする関数を作ります。</p>
+<p>敵を生成するための <code>spawn_enemy</code> 関数を定義します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn spawn_enemy(
@@ -1296,10 +1296,11 @@ const ENEMY_SPEED_LIMIT: f32 = 2.0;
     ));
 }
 <span class="boring">}</span></code></pre>
-<p>また、ランダムな位置にスポーンする関数と初期配置をするシステムを作ります。ランダムな位置へのスポーンは敵が倒されたり範囲外に出てリスポーンするときに使います。乱数を使いたいので<code>rand</code>というライブラリクレートを使います。</p>
+<p>また、ランダムな位置へのスポーン関数と、ゲーム開始時の初期配置を行うシステムを定義します。
+ランダムスポーンは、敵が撃破された際や画面外へ消えた際のリスポーンに使用します。</p>
+<p>乱数生成を行うために、<code>rand</code> クレートを追加しましょう。<code>Cargo.toml</code> の <code>[dependencies]</code> に以下を追記します。</p>
 <pre><code class="language-toml">rand = "0.10.1"
 </code></pre>
-<p>をCargo.tomlに追加</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use rand::prelude::*;
@@ -1341,7 +1342,7 @@ fn setup_enemies(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>範囲外に出た敵をデスポーンして新たな敵をスポーンします。</p>
+<p>画面外（移動範囲外）に出た敵を削除し、代わりに新しい敵をランダムな位置にスポーンさせます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const ENEMY_X_LIMIT: f32 = 19.0;
@@ -1370,7 +1371,7 @@ fn delete_out_of_range_enemy(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>また、敵にも弾丸を発射するシステムを作ります。</p>
+<p>敵が一定間隔で一定確率で弾丸を発射するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn enemy_shoot(
@@ -1399,7 +1400,7 @@ fn delete_out_of_range_enemy(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムをこれまで同様にプラグインに追加します。</p>
+<p>作成したシステムを <code>EnemyPlugin</code> にまとめ、アプリケーションに登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use super::utils::*;
@@ -1421,9 +1422,9 @@ impl Plugin for EnemyPlugin {
 }
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="hp"><a class="header" href="#hp">HP</a></h1>
-<p>HpUIの更新とHPが0になったときのシステムを書きます。</p>
-<p>HpUIの更新とプレイヤーのHPが0になったときの処理をするシステムを作る。</p>
+<h1 id="hpと死亡処理の実装"><a class="header" href="#hpと死亡処理の実装">HPと死亡処理の実装</a></h1>
+<p>HPを表示するUIの更新と、HPが0になった際の判定を行うシステムを実装します。</p>
+<p>まずは、プレイヤーのHP UIの更新と、HPが0になった時のリザルト画面への遷移を処理するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use crate::playing::CurrentScore;
@@ -1461,7 +1462,7 @@ pub fn update_player_hp(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>敵のHPが0になったときに敵をデスポーンしKillをカウントアップするシステムを作る。</p>
+<p>次に、敵のHPを監視し、0になった場合にデスポーン（消去）してスコアを加算するシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn handle_enemy_death(
@@ -1485,7 +1486,7 @@ pub fn update_player_hp(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムを<code>HpPlugin</code>に追加する。</p>
+<p>これらのシステムを <code>HpPlugin</code> に登録します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use crate::state;
@@ -1503,11 +1504,11 @@ impl Plugin for HpPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>また、このプラグインも<code>playing/mod.rs</code>の方に追加するのを忘れないように。</p>
+<p>他のプラグインと同様に、<code>playing/mod.rs</code> にこの <code>HpPlugin</code> を追加するのを忘れないようにしてください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="result画面の作成"><a class="header" href="#result画面の作成">Result画面の作成</a></h1>
-<p>リザルト画面では、今回のリザルト、今回のを含めたスコアの履歴を順位の順で表示、リトライボタン(Home画面に戻る)で構成されます。まずは<code>result/mod.rs</code>を作ってください</p>
-<p>リザルト画面の初期化をするシステムを作ります。</p>
+<h1 id="result画面結果表示の作成"><a class="header" href="#result画面結果表示の作成">Result画面（結果表示）の作成</a></h1>
+<p>リザルト画面は、今回のスコア表示、これまでのスコア履歴（ランキング形式）、およびタイトル画面へ戻るためのリトライボタンで構成されます。まずは、<code>src/result/mod.rs</code> を作成しましょう。</p>
+<p>リザルト画面のUIを初期化するシステムを実装します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use crate::playing::{Score, ScoreList};
@@ -1612,7 +1613,7 @@ fn setup_result_screen(
     setup_result_ui(&amp;mut commands, &amp;asset_server, &amp;score_list);
 }
 <span class="boring">}</span></code></pre>
-<p>リトライボタンの動作のシステムを作ります。</p>
+<p>リトライボタンが押された際にタイトル画面（Home）へ戻るためのシステムを作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>type RetryButtonInputs = (Changed&lt;Interaction&gt;, With&lt;RetryButton&gt;);
@@ -1636,7 +1637,7 @@ fn update_retry_button(
     }
 }
 <span class="boring">}</span></code></pre>
-<p>これらのシステムをプラグインを作ってそこに入れます。</p>
+<p>これらのシステムをまとめて管理する <code>ResultPlugin</code> を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct ResultPlugin;
@@ -1651,7 +1652,7 @@ impl Plugin for ResultPlugin {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>このプラグインは<code>main.rs</code>にあるappに追加してください。最終的な<code>main.rs</code>は次のようになります。</p>
+<p>最後に、この <code>ResultPlugin</code> を <code>main.rs</code> に登録します。これですべての画面の実装が揃いました！ 最終的な <code>main.rs</code> の内容は以下の通りです。</p>
 <pre class="playground"><code class="language-rust">#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::prelude::*;
 mod home;

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5659a02e.js";
+            window.path_to_searchindex_js = "searchindex-e382e2c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1b60c374.js"></script>
@@ -175,16 +175,20 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="ecsとは"><a class="header" href="#ecsとは">ECSとは</a></h1>
-<p>ECSはEntity Component Systemの略で、UnityではDOTS(Data-Oriented Technology Stack)とも呼ばれることがあります。</p>
+<p>ECSは「Entity Component System」の略称で、データ指向の設計手法です。Unityでは「DOTS (Data-Oriented Technology Stack)」の一部として知られています。</p>
 <ul>
-<li>Entity: オブジェクト的なもののID</li>
-<li>Component: 要素、属性、データ</li>
-<li>System: 処理、ロジック</li>
+<li><strong>Entity</strong>: オブジェクト（個体）を識別するためのIDです。自身はデータや機能を持ちません。</li>
+<li><strong>Component</strong>: 属性や状態を保持する「データ」のみの構造体です。</li>
+<li><strong>System</strong>: コンポーネントの状態を監視し、更新を行う「ロジック（処理）」です。</li>
 </ul>
-<p>EntityはUnityのOOPでいうGameObjectのようなものです。Entity自体は何も持っていません。IDのようなものです。
-ComponentはUnityのOOPでいうComponentとあまり違いはありませんが、OOPのComponentは動作も持ちますが、ECSのComponentは構造体でデータのみを持ちます。また、付け替えが容易です。
-SystemはUnityでいうScript内のメソッドのようなものです。Systemは処理を持ち、Componentを操作します。</p>
-<p>ECSの利点は、データがメモリ上に連続して配置されるため、キャッシュ効率が良く、高速な処理が可能です。また、データと処理が分離されているため、再利用性が高く、保守性の高いコードを書くことができます。</p>
+<h3 id="従来のoopunity等との比較"><a class="header" href="#従来のoopunity等との比較">従来のOOP（Unity等）との比較</a></h3>
+<ol>
+<li><strong>Entity</strong>: UnityのOOPにおける <code>GameObject</code> に近い概念ですが、Entity自体は空のコンテナ（ID）に過ぎません。</li>
+<li><strong>Component</strong>: UnityのComponentと概念は似ていますが、ECSのComponentはデータのみを持ち、振る舞い（メソッド）を持たないことが大きな特徴です。これにより、実行時の付け替えが非常に高速かつ容易になります。</li>
+<li><strong>System</strong>: Unityにおけるスクリプト内の更新ロジックに相当します。特定のコンポーネントを持つEntityを抽出し、一括で処理を行います。</li>
+</ol>
+<h3 id="ecsの利点"><a class="header" href="#ecsの利点">ECSの利点</a></h3>
+<p>ECSを採用することで、データがメモリ上に連続して配置されるようになります。これによりCPUのキャッシュ効率が極めて高くなり、大量のオブジェクトを高速に処理することが可能です。また、データと処理が明確に分離されるため、コードの再利用性や保守性が向上するというメリットもあります。</p>
 
                     </main>
 

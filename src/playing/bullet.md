@@ -1,6 +1,6 @@
-# 弾丸
+# 弾丸の実装
 
-`playing/bullet.rs`で`Bullet`コンポーネントと定数たちを定義していきます。
+`playing/bullet.rs` を作成し、`Bullet` コンポーネントと関連する定数を定義します。
 ```rust
 use bevy::prelude::*;
 
@@ -20,7 +20,7 @@ const ENEMY_BULLET_DAMAGE: f32 = 3.0;
 const BULLET_COLLISION_RADIUS: f32 = 1.0;
 const BULLET_LIFE_TIME: f32 = 0.7;
 ```
-弾丸の移動をするシステムを作ります。
+弾丸を移動させるためのシステムを作成します。
 ```rust
 fn move_bullet(query: Query<(&mut Transform, &Bullet)>, time: Res<Time>) {
     for (mut transform, bullet) in query {
@@ -28,7 +28,7 @@ fn move_bullet(query: Query<(&mut Transform, &Bullet)>, time: Res<Time>) {
     }
 }
 ```
-弾丸は一定時間後に消えてほしいので一定時間をはかるコンポーネントを`playing/utils.rs`に追加します。
+弾丸は発射から一定時間後に消滅させる必要があるため、時間を計測するためのコンポーネントを `playing/utils.rs` に追加します。
 ```rust
 #[derive(Component)]
 pub struct Interval {
@@ -54,7 +54,7 @@ fn tick_interval(time: Res<Time>, query: Query<&mut Interval>) {
     }
 }
 ```
-`tick_interval`システムをUtilPluginのbuild内でappに追加しておきます。
+作成した `tick_interval` システムを、`UtilPlugin` の `build` メソッド内で App に追加しておきます。
 ```rust
 pub struct UtilPlugin;
 
@@ -72,7 +72,7 @@ impl Plugin for UtilPlugin {
 ```
 
 
-弾丸をスポーンする関数を作ります(`playing/bullet.rs`)。
+続いて、`playing/bullet.rs` に弾丸を生成（スポーン）するための関数を定義します。
 ```rust
 pub fn spawn_bullet(
     commands: &mut Commands,
@@ -108,7 +108,7 @@ pub fn spawn_bullet(
 }
 ```
 
-弾丸の衝突判定をするシステムを作る。
+弾丸とキャラクターの衝突判定を行うシステムを作成します。
 ```rust
 fn bullet_collision(
     mut commands: Commands,
@@ -133,7 +133,7 @@ fn bullet_collision(
 }
 ```
 
-タイムアウトした弾丸を消去するシステムを作る。
+生存期間（Interval）が終了した弾丸を自動的に削除するシステムを作成します。
 
 ```rust
 fn remove_time_out_bullet(
@@ -148,7 +148,7 @@ fn remove_time_out_bullet(
 }
 ```
 
-`BulletPlugin`を作ってそこにシステムを追加します。
+`BulletPlugin` を作成し、これまで定義したシステムを登録します。
 ```rust
 pub struct BulletPlugin;
 
@@ -164,9 +164,9 @@ impl Plugin for BulletPlugin {
     }
 }
 ```
-`BulletPlugin`を`playing/mod.rs`の方で追加するのを忘れないでください。
+作成した `BulletPlugin` を `playing/mod.rs` に追加するのを忘れないようにしてください。
 
-プレイヤーに弾丸を発射するシステムを追加します。(`playing/player.rs`)
+最後に、プレイヤーがスペースキーを押した時に弾丸を発射できるよう、`playing/player.rs` に発射システムを追加します。
 ```rust
 fn shoot(
     mut commands: Commands,
@@ -189,7 +189,7 @@ fn shoot(
     }
 }
 ```
-`PlayerPlugin`に追加するのも忘れずに。
+作成した `shoot` システムを `PlayerPlugin` にも登録しましょう。
 ```rust
 pub struct PlayerPlugin;
 
