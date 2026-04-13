@@ -11,6 +11,5 @@
   - [敵](./playing/enemy.md)
   - [球](./playing/bullet.md)
   - [HP](./playing/hp.md)
-  - [共通して扱うもの](./playing/util.md)
 - [全章を一つのページにまとめたもの](./all_in_one.md)
 - [Chapter 1](./chapter_1.md)
