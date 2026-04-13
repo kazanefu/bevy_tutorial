@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9a2f6c66.js";
+            window.path_to_searchindex_js = "../searchindex-1cac4506.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1cc3d73b.js"></script>
@@ -176,7 +176,7 @@
                     <main>
                         <h1 id="playing画面全体の流れとui"><a class="header" href="#playing画面全体の流れとui">Playing画面全体の流れとUI</a></h1>
 <p>ここではPlugin、一時停止ボタン、再開ボタン、スコアテキスト、リザルト画面への遷移を実装します。</p>
-<p>まず、<code>PlayingPlugin</code>を作成します。</p>
+<p>まず、<code>playing/mod.rs</code>に<code>PlayingPlugin</code>を作成します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use bevy::prelude::*;
@@ -193,6 +193,403 @@ impl Plugin for PlayingPlugin {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>app.add_plugins(playing::PlayingPlugin);
+<span class="boring">}</span></code></pre>
+<p>また、<code>playing/mod.rs</code>に<code>playing/</code>内にあるモジュールを書き込みます</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub mod bullet;
+pub mod enemy;
+pub mod hp;
+pub mod player;
+pub mod utils;
+<span class="boring">}</span></code></pre>
+<p>また、<code>GameState</code>も使うので<code>use</code>に入れておきます</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use crate::state;
+<span class="boring">}</span></code></pre>
+<p>ここで、<code>crate</code>はルートを指す、つまり<code>main.rs</code>にあるものを指し、<code>main.rs</code>に展開されている<code>state</code>を使うということです。</p>
+<p>ではUIを作っていきます。
+<code>playing/mod.rs</code>内に<code>UI</code>,<code>PauseButton</code>,<code>ResumeButton</code>,<code>TimeUI</code>,<code>KillUI</code>をコンポーネントとして作ります。</p>
+<p><code>InGameState</code>というステートも作ることでゲームが動いているか止まっているかを管理します。</p>
+<p><code>setup_ui</code>関数でUI全体がどういう構成かを書いてバンドルとして返します。(ここでhp::HpUIというまだ作ってないコンポーネントが出てくるので<code>playing/hp.rs</code>で定義だけしといてください。)</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Component)]
+struct UI;
+
+#[derive(Component)]
+struct PauseButton;
+
+#[derive(Component)]
+struct ResumeButton;
+
+#[derive(Component)]
+struct TimeUI;
+
+#[derive(Component)]
+struct KillUI;
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+pub enum InGameState {
+    #[default]
+    Running,
+    Paused,
+}
+
+fn setup_ui(asset_server: &amp;AssetServer) -&gt; impl Bundle {
+    (
+        // 親となるUI全体
+        UI,
+        DespawnOnExit(state::GameState::Playing),
+        Node {
+            width: percent(100),
+            height: percent(100),
+            align_items: AlignItems::FlexEnd,
+            justify_content: JustifyContent::FlexStart,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(10.0),
+            ..default()
+        },
+        children![
+            (   
+                // ResumeButton
+                Button,
+                ResumeButton,
+                Node {
+                    width: percent(20),
+                    height: percent(10),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border_radius: BorderRadius::MAX,
+                    ..default()
+                },
+                BorderColor::all(Color::WHITE),
+                BackgroundColor(Color::WHITE),
+                children![(
+                    Text::new("Resume"),
+                    TextFont {
+                        font: asset_server.load(
+                            "embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"
+                        ),
+                        font_size: 40.0,
+                        ..default()
+                    },
+                    TextLayout::new_with_justify(Justify::Center),
+                    TextColor::BLACK,
+                )]
+            ),
+            (
+                // PauseButton
+                Button,
+                PauseButton,
+                Node {
+                    width: percent(20),
+                    height: percent(10),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border_radius: BorderRadius::MAX,
+                    ..default()
+                },
+                BorderColor::all(Color::WHITE),
+                BackgroundColor(Color::WHITE),
+                children![(
+                    Text::new("Pause"),
+                    TextFont {
+                        font: asset_server.load(
+                            "embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"
+                        ),
+                        font_size: 40.0,
+                        ..default()
+                    },
+                    TextLayout::new_with_justify(Justify::Center),
+                    TextColor::BLACK,
+                )]
+            ),
+            (
+                // TimeUI
+                Text::new(""),
+                TimeUI,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+            (
+                // KillUI
+                Text::new(""),
+                KillUI,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+            (   
+                // HpUI
+                Text::new(""),
+                hp::HpUI,
+                TextFont {
+                    font: asset_server
+                        .load("embedded://invader_tutorial/fonts/NotoSansJP-Bold.ttf"),
+                    font_size: 40.0,
+                    ..default()
+                },
+                TextLayout::new_with_justify(Justify::Center),
+                TextColor::WHITE,
+            ),
+        ],
+    )
+}
+<span class="boring">}</span></code></pre>
+<p>では次に現在のスコアと過去のスコアのリストのリソースを定義します(<code>playing/mod.rs</code>)。リソースとはアプリ全体に一つだけ存在し、どのシステムからでもアクセスできるシングルトン的なデータストレージです。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// スコアの構造を定義
+// キル数と生存時間から算出する
+#[derive(Default, Clone, Copy)]
+pub struct Score {
+    pub kill: i32,
+    pub survival_time: f32,
+}
+// スコアの計算
+impl Score {
+    pub fn score(&amp;self) -&gt; f32 {
+        (self.kill as f32 * self.survival_time.min(100.0)).sqrt()
+    }
+}
+// スコアを表示するために`score.to_string()`でできる文字列を作る
+impl std::fmt::Display for Score {
+    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;'_&gt;) -&gt; std::fmt::Result {
+        f.write_str(&amp;format!(
+            "Kill: {}\nSurvival Time: {:.2}\nScore: {:.2}",
+            self.kill,
+            self.survival_time,
+            self.score()
+        ))
+    }
+}
+
+// 現在のスコア
+#[derive(Resource)]
+pub struct CurrentScore(Score);
+// スコアの初期化
+fn reset_current_score(current_score: &amp;mut CurrentScore) {
+    current_score.0 = Score::default();
+}
+// 過去のスコアのリスト
+#[derive(Resource)]
+pub struct ScoreList(pub Vec&lt;Score&gt;);
+// 現在のスコアをリストに追加する
+fn push_score_list(mut score_list: ResMut&lt;ScoreList&gt;, current_score: Res&lt;CurrentScore&gt;) {
+    score_list.0.push(current_score.0);
+}
+<span class="boring">}</span></code></pre>
+<p>時間を管理するためのストップウォッチのリソースを定義します(<code>playing/mod.rs</code>)。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Resource, Default)]
+pub struct StopWatch {
+    time: f32,
+    is_running: bool,
+}
+
+impl StopWatch {
+    pub fn new(run: bool) -&gt; Self {
+        Self {
+            time: 0.0,
+            is_running: run,
+        }
+    }
+    pub fn now(&amp;self) -&gt; f32 {
+        self.time
+    }
+    pub fn start(&amp;mut self) {
+        self.is_running = true;
+    }
+    pub fn pause(&amp;mut self) {
+        self.is_running = false;
+    }
+    pub fn reset(&amp;mut self) {
+        self.time = 0.0;
+    }
+    pub fn is_running(&amp;self) -&gt; bool {
+        self.is_running
+    }
+}
+
+fn update_stopwatch(time: Res&lt;Time&gt;, mut stopwatch: ResMut&lt;StopWatch&gt;) {
+    if stopwatch.is_running() {
+        stopwatch.time += time.delta_secs();
+    }
+}
+
+fn start_stopwatch_res(mut stopwatch: ResMut&lt;StopWatch&gt;) {
+    stopwatch.reset();
+    stopwatch.start();
+}
+<span class="boring">}</span></code></pre>
+<p><code>TimeUI</code>や<code>KillUI</code>を更新するシステムと一時停止ボタンと再開ボタンを動作させるシステムを作ります(<code>playing/mod.rs</code>)。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn update_time_ui(stopwatch: Res&lt;StopWatch&gt;, mut time_ui_query: Query&lt;&amp;mut Text, With&lt;TimeUI&gt;&gt;) {
+    for mut time_ui in &amp;mut time_ui_query {
+        let current_time = stopwatch.now();
+        **time_ui = format!("Time: {:.2}s / 100s", current_time);
+    }
+}
+
+fn update_kill_ui(
+    current_score: ResMut&lt;CurrentScore&gt;,
+    mut kill_ui_query: Query&lt;&amp;mut Text, With&lt;KillUI&gt;&gt;,
+) {
+    for mut kill_ui in &amp;mut kill_ui_query {
+        **kill_ui = format!("Kill: {}", current_score.0.kill);
+    }
+}
+
+type ResumeButtonInputs = (Changed&lt;Interaction&gt;, With&lt;ResumeButton&gt;);
+fn update_resume_button(
+    mut query: Query&lt;(&amp;Interaction, &amp;mut BackgroundColor), ResumeButtonInputs&gt;,
+    mut stopwatch: ResMut&lt;StopWatch&gt;,
+    mut game_state: ResMut&lt;NextState&lt;InGameState&gt;&gt;,
+) {
+    for (interaction, mut background_color) in query.iter_mut() {
+        match interaction {
+            Interaction::Pressed =&gt; {
+                background_color.0 = Color::srgb(0.5, 0.5, 0.5);
+                stopwatch.start();
+                game_state.set(InGameState::Running);
+            }
+            Interaction::Hovered =&gt; {
+                background_color.0 = Color::srgb(0.7, 0.7, 0.7);
+            }
+            Interaction::None =&gt; {
+                background_color.0 = Color::srgb(0.9, 0.9, 0.9);
+            }
+        }
+    }
+}
+
+type PauseButtonInputs = (Changed&lt;Interaction&gt;, With&lt;PauseButton&gt;);
+fn update_pause_button(
+    mut query: Query&lt;(&amp;Interaction, &amp;mut BackgroundColor), PauseButtonInputs&gt;,
+    mut stopwatch: ResMut&lt;StopWatch&gt;,
+    mut game_state: ResMut&lt;NextState&lt;InGameState&gt;&gt;,
+) {
+    for (interaction, mut background_color) in query.iter_mut() {
+        match interaction {
+            Interaction::Pressed =&gt; {
+                background_color.0 = Color::srgb(0.5, 0.5, 0.5);
+                stopwatch.pause();
+                game_state.set(InGameState::Paused);
+            }
+            Interaction::Hovered =&gt; {
+                background_color.0 = Color::srgb(0.7, 0.7, 0.7);
+            }
+            Interaction::None =&gt; {
+                background_color.0 = Color::srgb(0.9, 0.9, 0.9);
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>また、時間制限を超えたらリザルト画面に行くシステムも作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>const TIME_LIMIT: f32 = 100.0;
+fn check_time_limit(
+    stopwatch: Res&lt;StopWatch&gt;,
+    mut current_score: ResMut&lt;CurrentScore&gt;,
+    mut game_state: ResMut&lt;NextState&lt;crate::state::GameState&gt;&gt;,
+) {
+    let current_time = stopwatch.now();
+    current_score.0.survival_time = current_time;
+    if current_time &gt;= TIME_LIMIT {
+        game_state.set(state::GameState::Result);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>次は背景を用意します。適当な画像を用意して<code>src/img/invader_background.png</code>にでもおいておきます。<code>main.rs</code>につぎのを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>bevy::asset::embedded_asset!(app, "img/invader_background.png");
+<span class="boring">}</span></code></pre>
+<p>Playing画面の初期配置をするシステムを作ります。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn setup_playing(
+    mut commands: Commands,
+    asset_server: Res&lt;AssetServer&gt;,
+    mut current_score: ResMut&lt;CurrentScore&gt;,
+    mut meshes: ResMut&lt;Assets&lt;Mesh&gt;&gt;,
+    mut materials: ResMut&lt;Assets&lt;StandardMaterial&gt;&gt;,
+) {
+    reset_current_score(&amp;mut current_score);
+    // spawn a camera
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z),
+        DespawnOnExit(state::GameState::Playing),
+    ));
+    // spawn ui
+    commands.spawn(setup_ui(&amp;asset_server));
+    // spawn background
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0))),
+        MeshMaterial3d(materials.add(
+            StandardMaterial {
+                base_color_texture:
+                    Some(
+                        asset_server.load(
+                            "embedded://invader_tutorial/img/invader_background.png",
+                        ),
+                    ),
+                unlit: true,
+                ..default()
+            },
+        )),
+        Transform::from_xyz(0.0, 0.0, -10.0),
+        DespawnOnExit(state::GameState::Playing),
+    ));
+}
+<span class="boring">}</span></code></pre>
+<p>ではステート、リソース、システムを<code>app</code>に追加していきます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl Plugin for PlayingPlugin {
+    fn build(&amp;self, app: &amp;mut App) {
+        app.insert_resource(StopWatch::new(false))
+            .insert_resource(CurrentScore(Score::default()))
+            .insert_resource(ScoreList(Vec::new()))
+            .init_state::&lt;InGameState&gt;()
+            .add_systems(
+                OnEnter(state::GameState::Playing),
+                (setup_playing, start_stopwatch_res),
+            )
+            .add_systems(
+                Update,
+                (
+                    update_stopwatch,
+                    update_time_ui,
+                    update_kill_ui,
+                    check_time_limit,
+                    update_pause_button,
+                    update_resume_button,
+                )
+                    .run_if(in_state(state::GameState::Playing)),
+            )
+            .add_systems(OnExit(state::GameState::Playing), push_score_list);
+    }
+}
+
 <span class="boring">}</span></code></pre>
 
                     </main>
