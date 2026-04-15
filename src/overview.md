@@ -9,3 +9,8 @@ frameborder="0"
 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 allowfullscreen>
 </iframe>
+
+## Bevyとは
+
+Bevyとは、とてもシンプルなデータ指向設計(ECS)を中心としたの完全無料のオープンソースのゲームエンジンです。ゲームエンジンとは言っても、Unityのようにリッチなエディタがあったりするわけではなく、ただのRust言語のライブラリのようなものです。
+言語やデータ指向の設計によりかなり高いパフォーマンスを実現できます。まだバージョン0.18で安定バージョンは出ていませんが、Rust製のゲームエンジンの中では最もメジャーです。
